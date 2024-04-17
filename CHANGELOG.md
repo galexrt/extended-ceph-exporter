@@ -1,3 +1,7 @@
+## 1.2.1 / 2024-04-17
+
+* [CHORE] version bump for new release under new namespace
+
 ## 1.2.0 / 2024-02-29
 
 * [CHORE] Update ceph-go library to 0.26.0

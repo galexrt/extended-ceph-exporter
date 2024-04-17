@@ -78,7 +78,7 @@ docker-publish:
 format:
 	go fmt $(pkgs)
 
-helm-doc:
+helm-docs:
 	GO111MODULE=on go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.11.0
 	helm-docs --chart-search-root=./charts
 
