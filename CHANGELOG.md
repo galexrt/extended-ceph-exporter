@@ -1,3 +1,7 @@
+## 1.2.2 / 2024-04-17
+
+* [CHORE] change container image release target
+
 ## 1.2.1 / 2024-04-17
 
 * [CHORE] version bump for new release under new namespace
