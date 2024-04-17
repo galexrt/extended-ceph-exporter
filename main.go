@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/ceph/go-ceph/rgw/admin"
+	"github.com/galexrt/extended-ceph-exporter/collector"
 	"github.com/joho/godotenv"
-	"github.com/koor-tech/extended-ceph-exporter/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"

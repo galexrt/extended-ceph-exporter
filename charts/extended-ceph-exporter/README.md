@@ -7,7 +7,7 @@ A Helm chart for deploying the extended-ceph-exporter to Kubernetes
 ## Get Repo Info
 
 ```console
-helm repo add extended-ceph-exporter https://koor-tech.github.io/extended-ceph-exporter
+helm repo add extended-ceph-exporter https://galexrt.github.io/extended-ceph-exporter
 helm repo update
 ```
 

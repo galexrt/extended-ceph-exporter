@@ -1,4 +1,4 @@
-module github.com/koor-tech/extended-ceph-exporter
+module github.com/galexrt/extended-ceph-exporter
 
 go 1.21.7
 

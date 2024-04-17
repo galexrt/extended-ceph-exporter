@@ -31,7 +31,7 @@ jobs:
           ./helm-docs --chart-search-root=${GITHUB_WORKSPACE}/charts
           DIFF=$(git diff ${GITHUB_WORKSPACE}/charts/extended-ceph-exporter/README.md)
           if [ ! -z "$DIFF" ]; then
-            echo "Please use helm-docs in your clone of the project, and commit an updated README.md for the chart. https://github.com/koor-tech/extended-ceph-exporter/blob/main/RELEASE.md#running-helm-docs"
+            echo "Please use helm-docs in your clone of the project, and commit an updated README.md for the chart. https://github.com/galexrt/extended-ceph-exporter/blob/main/RELEASE.md#running-helm-docs"
           fi
           git diff --exit-code
           rm -f ./helm-docs

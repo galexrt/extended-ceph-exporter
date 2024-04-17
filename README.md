@@ -22,7 +22,7 @@ A Prometheus exporter to provide "extended" metrics about a Ceph cluster's runni
 
 * Clone the repository:
   ```console
-  git clone https://github.com/koor-tech/extended-ceph-exporter
+  git clone https://github.com/galexrt/extended-ceph-exporter
   cd extended-ceph-exporter
   ```
 

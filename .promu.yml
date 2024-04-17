@@ -1,7 +1,7 @@
 go:
   version: 1.21
 repository:
-    path: github.com/koor-tech/extended-ceph-exporter
+    path: github.com/galexrt/extended-ceph-exporter
 build:
     flags: -a -tags netgo
     ldflags: |
