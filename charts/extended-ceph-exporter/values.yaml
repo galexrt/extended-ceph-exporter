@@ -7,7 +7,7 @@ replicaCount: 1
 
 image:
   # @ignore
-  repository: docker.io/koorinc/extended-ceph-exporter
+  repository: docker.io/galexrt/extended-ceph-exporter
   # @ignore
   pullPolicy: IfNotPresent
   # -- Overrides the image tag whose default is the chart appVersion.

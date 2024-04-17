@@ -36,7 +36,7 @@ PROMU := $(FIRST_GOPATH)/bin/promu
 
 pkgs = $(shell go list ./... | grep -v /vendor/ | grep -v /test/)
 
-CONTAINER_IMAGE_NAME ?= docker.io/koorinc/extended-ceph-exporter
+CONTAINER_IMAGE_NAME ?= docker.io/galexrt/extended-ceph-exporter
 CONTAINER_IMAGE_TAG  ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
 
 all: format style vet test build
