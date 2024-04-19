@@ -2,6 +2,8 @@
 
 A Prometheus exporter to provide "extended" metrics about a Ceph cluster's running components (e.g., RGW).
 
+Due to the closure of Koor Technologies, Inc. this repository has been made to continue the work on the extended-ceph-exporter project.
+
 [![Ceph - RGW Bucket Usage Overview Grafana Dashboard Screenshot](grafana/ceph-rgw-bucket-usage-overview.png)](grafana/)
 
 ## Requirements
