@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -52,6 +53,8 @@ type CmdLineOpts struct {
 	ListenHost  string
 	MetricsPath string
 
+	CtxTimeout time.Duration
+
 	CachingEnabled bool
 	CacheDuration  time.Duration
 }
@@ -71,6 +74,8 @@ func init() {
 
 	flags.StringVar(&opts.ListenHost, "listen-host", ":9138", "Exporter listen host")
 	flags.StringVar(&opts.MetricsPath, "metrics-path", "/metrics", "Set the metrics endpoint path")
+
+	flags.DurationVar(&opts.CtxTimeout, "context-timeout", 60*time.Second, "Context timeout for collecting metrics per collector")
 
 	flags.BoolVar(&opts.CachingEnabled, "cache-enabled", false, "Enable metrics caching to reduce load")
 	flags.DurationVar(&opts.CacheDuration, "cache-duration", 20*time.Second, "Cache duration in seconds")
@@ -155,7 +160,9 @@ func main() {
 		log.Infof(" - %s", n)
 	}
 
-	if err = prometheus.Register(NewExtendedCephMetricsCollector(log, collectors, opts.CachingEnabled, opts.CacheDuration)); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, log, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
 		log.Fatalf("Couldn't register collector: %s", err)
 	}
 

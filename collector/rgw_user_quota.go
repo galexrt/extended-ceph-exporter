@@ -39,16 +39,16 @@ type RGWUserQuota struct {
 	current *prometheus.Desc
 }
 
-func (c *RGWUserQuota) Update(ch chan<- prometheus.Metric) error {
+func (c *RGWUserQuota) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
 	// Get the "admin" user
-	users, err := c.api.GetUsers(context.Background())
+	users, err := c.api.GetUsers(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Iterate over users to get quota
 	for _, user := range *users {
-		userQuota, err := c.api.GetUserQuota(context.Background(), admin.QuotaSpec{
+		userQuota, err := c.api.GetUserQuota(ctx, admin.QuotaSpec{
 			UID: user,
 		})
 		if err != nil {

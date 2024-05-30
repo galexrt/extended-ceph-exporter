@@ -67,6 +67,26 @@ below list all existing collectors and the required Ceph components.
 | `rgw_buckets`    | Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster. | RGW            |
 | `rgw_user_quota` |       Exposes RGW User Quota metrics from the Ceph cluster.       | RGW            |
 
+## Flags
+
+```console
+$ extended-ceph-exporter --help
+Usage of exporter:
+      --cache-duration duration     Cache duration in seconds (default 20s)
+      --cache-enabled               Enable metrics caching to reduce load
+      --collectors-enabled string   List of enabled collectors (default "rgw_user_quota,rgw_buckets")
+      --context-timeout duration    Context timeout for collecting metrics per collector (default 1m0s)
+      --listen-host string          Exporter listen host (default ":9138")
+      --log-level string            Set log level (default "INFO")
+      --metrics-path string         Set the metrics endpoint path (default "/metrics")
+      --rgw-access-key string       RGW Access Key
+      --rgw-host string             RGW Host URL
+      --rgw-secret-key string       RGW Secret Key
+      --version                     Show version info and exit
+pflag: help requested
+exit status 2
+```
+
 ## Development
 
 ### Requirements

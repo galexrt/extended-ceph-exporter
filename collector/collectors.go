@@ -17,6 +17,8 @@ limitations under the License.
 package collector
 
 import (
+	"context"
+
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -28,7 +30,7 @@ type Clients struct {
 }
 
 type Collector interface {
-	Update(chan<- prometheus.Metric) error
+	Update(context.Context, chan<- prometheus.Metric) error
 }
 
 type NewCollectorFunc func(*Clients) (Collector, error)

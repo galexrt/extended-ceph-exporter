@@ -39,14 +39,14 @@ type RGWBuckets struct {
 	current *prometheus.Desc
 }
 
-func (c *RGWBuckets) Update(ch chan<- prometheus.Metric) error {
-	buckets, err := c.api.ListBuckets(context.Background())
+func (c *RGWBuckets) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
+	buckets, err := c.api.ListBuckets(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, bucketName := range buckets {
-		bucketInfo, err := c.api.GetBucketInfo(context.Background(), admin.Bucket{
+		bucketInfo, err := c.api.GetBucketInfo(ctx, admin.Bucket{
 			Bucket: bucketName,
 		})
 		if err != nil {

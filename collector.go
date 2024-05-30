@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -42,6 +43,8 @@ var (
 
 // ExtendedCephMetricsCollector contains the collectors to be used
 type ExtendedCephMetricsCollector struct {
+	ctx             context.Context
+	ctxTimeout      time.Duration
 	log             *logrus.Logger
 	lastCollectTime time.Time
 	collectors      map[string]collector.Collector
@@ -53,8 +56,10 @@ type ExtendedCephMetricsCollector struct {
 	cacheMutex     sync.Mutex
 }
 
-func NewExtendedCephMetricsCollector(log *logrus.Logger, collectors map[string]collector.Collector, cachingEnabled bool, cacheDuration time.Duration) *ExtendedCephMetricsCollector {
+func NewExtendedCephMetricsCollector(ctx context.Context, log *logrus.Logger, collectors map[string]collector.Collector, ctxTimeout time.Duration, cachingEnabled bool, cacheDuration time.Duration) *ExtendedCephMetricsCollector {
 	return &ExtendedCephMetricsCollector{
+		ctx:             ctx,
+		ctxTimeout:      ctxTimeout,
 		log:             log,
 		cache:           make([]prometheus.Metric, 0),
 		lastCollectTime: time.Unix(0, 0),
@@ -110,8 +115,11 @@ func (n *ExtendedCephMetricsCollector) Collect(outgoingCh chan<- prometheus.Metr
 	wgCollection.Add(len(n.collectors))
 	for name, coll := range n.collectors {
 		go func(name string, coll collector.Collector) {
+			ctx, cancel := context.WithTimeout(n.ctx, n.ctxTimeout)
+			defer cancel()
+
 			begin := time.Now()
-			err := coll.Update(metricsCh)
+			err := coll.Update(ctx, metricsCh)
 			duration := time.Since(begin)
 			var success float64
 
