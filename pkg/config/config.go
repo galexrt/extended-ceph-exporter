@@ -1,5 +1,5 @@
 /*
-Copyright 2022 Koor Technologies, Inc. All rights reserved.
+Copyright 2024 Alexander Trost All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,26 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package collector
+package config
 
-import (
-	"context"
-
-	"github.com/ceph/go-ceph/rgw/admin"
-	"github.com/prometheus/client_golang/prometheus"
-)
-
-const Namespace = "ceph"
-
-type Client struct {
-	Name        string
-	RGWAdminAPI *admin.API
+type Realms struct {
+	Realms []*Realm `yaml:"realms"`
 }
 
-type Collector interface {
-	Update(context.Context, *Client, chan<- prometheus.Metric) error
+type Realm struct {
+	Name          string `yaml:"name"`
+	Host          string `yaml:"host"`
+	AccessKey     string `yaml:"accessKey"`
+	SecretKey     string `yaml:"secretKey"`
+	SkipTLSVerify bool   `yaml:"skipTLSVerify"`
 }
-
-type NewCollectorFunc func() (Collector, error)
-
-var Factories map[string]NewCollectorFunc = map[string]NewCollectorFunc{}

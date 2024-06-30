@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -26,12 +27,14 @@ import (
 
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/galexrt/extended-ceph-exporter/collector"
+	"github.com/galexrt/extended-ceph-exporter/pkg/config"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -45,15 +48,20 @@ type CmdLineOpts struct {
 	LogLevel string
 
 	CollectorsEnabled string
+	MultiRealm        bool
+	MultiRealmConfig  string
 
 	RGWHost      string
 	RGWAccessKey string
 	RGWSecretKey string
 
+	SkipTLSVerify bool
+
 	ListenHost  string
 	MetricsPath string
 
-	CtxTimeout time.Duration
+	CtxTimeout  time.Duration
+	HttpTimeout time.Duration
 
 	CachingEnabled bool
 	CacheDuration  time.Duration
@@ -68,14 +76,21 @@ func init() {
 	flags.StringVar(&opts.LogLevel, "log-level", "INFO", "Set log level")
 
 	flags.StringVar(&opts.CollectorsEnabled, "collectors-enabled", defaultEnabledCollectors, "List of enabled collectors")
+
+	flags.BoolVar(&opts.MultiRealm, "multi-realm", false, "Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)")
+	flags.StringVar(&opts.MultiRealmConfig, "multi-realm-config", "realms.yaml", "Path to your realms.yaml config file")
+
 	flags.StringVar(&opts.RGWHost, "rgw-host", "", "RGW Host URL")
 	flags.StringVar(&opts.RGWAccessKey, "rgw-access-key", "", "RGW Access Key")
 	flags.StringVar(&opts.RGWSecretKey, "rgw-secret-key", "", "RGW Secret Key")
+
+	flags.BoolVar(&opts.SkipTLSVerify, "skip-tls-verify", false, "Skip TLS cert verification")
 
 	flags.StringVar(&opts.ListenHost, "listen-host", ":9138", "Exporter listen host")
 	flags.StringVar(&opts.MetricsPath, "metrics-path", "/metrics", "Set the metrics endpoint path")
 
 	flags.DurationVar(&opts.CtxTimeout, "context-timeout", 60*time.Second, "Context timeout for collecting metrics per collector")
+	flags.DurationVar(&opts.HttpTimeout, "http-timeout", 55*time.Second, "HTTP request timeout for collecting metrics for RGW API HTTP client")
 
 	flags.BoolVar(&opts.CachingEnabled, "cache-enabled", false, "Enable metrics caching to reduce load")
 	flags.DurationVar(&opts.CacheDuration, "cache-duration", 20*time.Second, "Cache duration in seconds")
@@ -131,27 +146,53 @@ func main() {
 	}
 	log.SetLevel(l)
 
-	// Check if required flags are given
-	for _, f := range requiredFlags {
-		flag := flags.Lookup(f)
-		if flag == nil {
-			log.Fatalf("required flag %s not found during lookup in flags list, please report this to the developer", f)
+	var realms []*config.Realm
+	if !opts.MultiRealm {
+		// Check if required flags are given
+		for _, f := range requiredFlags {
+			flag := flags.Lookup(f)
+			if flag == nil {
+				log.Fatalf("required flag %s not found during lookup in flags list, please report this to the developer", f)
+			}
+			if !flag.Changed {
+				log.Fatalf("required flag %s not set", flag.Name)
+			}
 		}
-		if !flag.Changed {
-			log.Fatalf("required flag %s not set", flag.Name)
+
+		realms = append(realms, &config.Realm{
+			Name:          "default",
+			Host:          opts.RGWHost,
+			AccessKey:     opts.RGWAccessKey,
+			SecretKey:     opts.RGWSecretKey,
+			SkipTLSVerify: opts.SkipTLSVerify,
+		})
+	} else {
+		realmsCfg := &config.Realms{}
+
+		yamlFile, err := os.ReadFile(opts.MultiRealmConfig)
+		if err != nil {
+			log.Printf("failed to load realms config file. %v ", err)
+		}
+		if err := yaml.Unmarshal(yamlFile, realmsCfg); err != nil {
+			log.Fatalf("failed to unmarshal realms config file. %v", err)
+		}
+		realms = append(realms, realmsCfg.Realms...)
+	}
+
+	clients := map[string]*collector.Client{}
+	for _, realm := range realms {
+		rgwAdminAPI, err := CreateRGWAPIConnection(realm)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		clients[realm.Name] = &collector.Client{
+			Name:        realm.Name,
+			RGWAdminAPI: rgwAdminAPI,
 		}
 	}
 
-	rgwAdminAPI, err := CreateRGWAPIConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clients := &collector.Clients{
-		RGWAdminAPI: rgwAdminAPI,
-	}
-
-	collectors, err := loadCollectors(opts.CollectorsEnabled, clients)
+	collectors, err := loadCollectors(opts.CollectorsEnabled)
 	if err != nil {
 		log.Fatalf("Couldn't load collectors: %s", err)
 	}
@@ -162,7 +203,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, log, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
+	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, log, clients, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
 		log.Fatalf("Couldn't register collector: %s", err)
 	}
 
@@ -191,28 +232,39 @@ func main() {
 	http.ListenAndServe(opts.ListenHost, nil)
 }
 
-func CreateRGWAPIConnection() (*admin.API, error) {
+func CreateRGWAPIConnection(realm *config.Realm) (*admin.API, error) {
+	httpClient := &http.Client{
+		Transport: http.DefaultTransport.(*http.Transport).Clone(),
+		Timeout:   opts.HttpTimeout,
+	}
+	if realm.SkipTLSVerify {
+		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
 	// Generate a connection object
-	co, err := admin.New(opts.RGWHost, opts.RGWAccessKey, opts.RGWSecretKey, nil)
+	co, err := admin.New(realm.Host, realm.AccessKey, realm.SecretKey, httpClient)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create RGW API connection for %s realm. %w", realm.Name, err)
 	}
 
 	return co, nil
 }
 
-func loadCollectors(list string, clients *collector.Clients) (map[string]collector.Collector, error) {
+func loadCollectors(list string) (map[string]collector.Collector, error) {
 	collectors := map[string]collector.Collector{}
 	for _, name := range strings.Split(list, ",") {
 		fn, ok := collector.Factories[name]
 		if !ok {
 			return nil, fmt.Errorf("collector '%s' not available", name)
 		}
-		c, err := fn(clients)
+		c, err := fn()
 		if err != nil {
 			return nil, err
 		}
 		collectors[name] = c
 	}
+
 	return collectors, nil
 }

@@ -23,30 +23,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type RGWBuckets struct {
+	current *prometheus.Desc
+}
+
 func init() {
 	Factories["rgw_buckets"] = NewRGWBuckets
 }
 
-func NewRGWBuckets(c *Clients) (Collector, error) {
-	return &RGWBuckets{
-		api: c.RGWAdminAPI,
-	}, nil
+func NewRGWBuckets() (Collector, error) {
+	return &RGWBuckets{}, nil
 }
 
-type RGWBuckets struct {
-	api *admin.API
-
-	current *prometheus.Desc
-}
-
-func (c *RGWBuckets) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
-	buckets, err := c.api.ListBuckets(ctx)
+func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prometheus.Metric) error {
+	buckets, err := client.RGWAdminAPI.ListBuckets(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, bucketName := range buckets {
-		bucketInfo, err := c.api.GetBucketInfo(ctx, admin.Bucket{
+		bucketInfo, err := client.RGWAdminAPI.GetBucketInfo(ctx, admin.Bucket{
 			Bucket: bucketName,
 		})
 		if err != nil {
@@ -56,6 +52,7 @@ func (c *RGWBuckets) Update(ctx context.Context, ch chan<- prometheus.Metric) er
 		labels := map[string]string{
 			"bucket": bucketName,
 			"uid":    bucketInfo.Owner,
+			"realm":  client.Name,
 		}
 
 		c.current = prometheus.NewDesc(

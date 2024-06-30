@@ -74,3 +74,14 @@ RGW Host value
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Renders a structure, even values that contain template functions/logic.
+*/}}
+{{- define "app.render" -}}
+  {{- if typeIs "string" .value }}
+    {{- tpl .value .context }}
+  {{ else }}
+    {{- tpl (.value | toYaml) .context }}
+  {{- end }}
+{{- end -}}

@@ -131,6 +131,11 @@ config:
     # -- RGW admin secret key
     # @default -- Randomly generated
     secretKey: null
+  multiMode:
+    # -- If RGW realm multi mode should be enabled, you must provide a volume mount with a config file named `reals.yaml`. Checkout the readme section for more information https://github.com/galexrt/extended-ceph-exporter/tree/multiple_rgw_realms?tab=readme-ov-file#multi-realm-mode
+    enabled: false
+    # -- RGW realm multi mode config file path inside the exporter container
+    realms: "/realms/realms.yaml"
 
 # -- Will be put in a Secret and used as env vars
 additionalEnv: {}
@@ -146,3 +151,42 @@ postInstallJob:
     repository: quay.io/ceph/ceph
     pullPolicy: IfNotPresent
     tag: v17.2.7
+
+# -- Extra volumes to add to the deployment
+volumes: []
+#  - name: realms-config
+#    projected:
+#      sources:
+#        - secret:
+#            name: your-realms-config-secret
+#            items:
+#              - key: realms.yaml
+#                path: realms.yaml
+#                mode: 600
+
+# -- Extra volume mounts to add to the deployment
+volumeMounts: []
+#  - name: realms-config
+#    mountPath: "/realms"
+#    readOnly: true
+
+# -- Extra objects to deploy (value evaluated as a template)
+extraObjects: []
+# Example secret for realms config
+#  - apiVersion: v1
+#    kind: Secret
+#    metadata:
+#      name: realms-config
+#    data:
+#      # See https://github.com/galexrt/extended-ceph-exporter/blob/main/realms.example.yaml
+#      realms.yaml: |
+#        realms:
+#        - name: example1
+#          host: your-rgw-host.example.com
+#          accessKey: YOUR_ACCESS_KEY
+#          secretKey: YOUR_SECRET_KEY
+#        - name: example2
+#          host: your-rgw-host.example.com
+#          accessKey: YOUR_ACCESS_KEY
+#          secretKey: YOUR_SECRET_KEY
+
