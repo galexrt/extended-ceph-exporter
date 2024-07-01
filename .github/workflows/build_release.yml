@@ -43,8 +43,18 @@ jobs:
           username: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
           password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
 
-      - name: Build and push container image
+      - name: Build and push container image to Docker Hub
         run: |
           export CONTAINER_IMAGE_TAG="${GITHUB_REF#refs/*/}"
           make docker-build
+          make docker-publish
+
+      - name: Build and push container image to GHCR.io
+        run: |
+          export CONTAINER_IMAGE_TAG="${GITHUB_REF#refs/*/}"
+          export CONTAINER_IMAGE_NAME="ghcr.io/galexrt/extended-ceph-exporter"
+
+          docker tag "docker.io/galexrt/extended-ceph-exporter:latest" "${CONTAINER_IMAGE_NAME}:latest"
+          docker tag "docker.io/galexrt/extended-ceph-exporter:latest" "${CONTAINER_IMAGE_NAME}:${CONTAINER_IMAGE_TAG}"
+
           make docker-publish
