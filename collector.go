@@ -30,13 +30,13 @@ var (
 	scrapeDurationDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(collector.Namespace, "scrape", "collector_duration_seconds"),
 		"Duration of a collector scrape.",
-		[]string{"collector"},
+		[]string{"collector", "realm"},
 		nil,
 	)
 	scrapeSuccessDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(collector.Namespace, "scrape", "collector_success"),
 		"Whether a collector succeeded.",
-		[]string{"collector"},
+		[]string{"collector", "realm"},
 		nil,
 	)
 )
@@ -47,6 +47,7 @@ type ExtendedCephMetricsCollector struct {
 	ctxTimeout      time.Duration
 	log             *logrus.Logger
 	lastCollectTime time.Time
+	clients         map[string]*collector.Client
 	collectors      map[string]collector.Collector
 
 	// Cache related
@@ -56,14 +57,15 @@ type ExtendedCephMetricsCollector struct {
 	cacheMutex     sync.Mutex
 }
 
-func NewExtendedCephMetricsCollector(ctx context.Context, log *logrus.Logger, collectors map[string]collector.Collector, ctxTimeout time.Duration, cachingEnabled bool, cacheDuration time.Duration) *ExtendedCephMetricsCollector {
+func NewExtendedCephMetricsCollector(ctx context.Context, log *logrus.Logger, clients map[string]*collector.Client, collectors map[string]collector.Collector, ctxTimeout time.Duration, cachingEnabled bool, cacheDuration time.Duration) *ExtendedCephMetricsCollector {
 	return &ExtendedCephMetricsCollector{
 		ctx:             ctx,
 		ctxTimeout:      ctxTimeout,
 		log:             log,
-		cache:           make([]prometheus.Metric, 0),
 		lastCollectTime: time.Unix(0, 0),
+		clients:         clients,
 		collectors:      collectors,
+		cache:           make([]prometheus.Metric, 0),
 		cachingEnabled:  cachingEnabled,
 		cacheDuration:   cacheDuration,
 	}
@@ -100,6 +102,8 @@ func (n *ExtendedCephMetricsCollector) Collect(outgoingCh chan<- prometheus.Metr
 	wgOutgoing := sync.WaitGroup{}
 	wgOutgoing.Add(1)
 	go func() {
+		defer wgOutgoing.Done()
+
 		for metric := range metricsCh {
 			outgoingCh <- metric
 			if n.cachingEnabled {
@@ -108,32 +112,35 @@ func (n *ExtendedCephMetricsCollector) Collect(outgoingCh chan<- prometheus.Metr
 			}
 		}
 		n.log.Debug("Finished pushing metrics from metricsCh to outgoingCh")
-		wgOutgoing.Done()
 	}()
 
 	wgCollection := sync.WaitGroup{}
-	wgCollection.Add(len(n.collectors))
-	for name, coll := range n.collectors {
-		go func(name string, coll collector.Collector) {
-			ctx, cancel := context.WithTimeout(n.ctx, n.ctxTimeout)
-			defer cancel()
 
-			begin := time.Now()
-			err := coll.Update(ctx, metricsCh)
-			duration := time.Since(begin)
-			var success float64
+	for collName, coll := range n.collectors {
+		for clientName, client := range n.clients {
+			wgCollection.Add(1)
+			go func(collName string, coll collector.Collector, clientName string, client *collector.Client) {
+				defer wgCollection.Done()
 
-			if err != nil {
-				n.log.Errorf("%s collector failed after %fs: %s", name, duration.Seconds(), err)
-				success = 0
-			} else {
-				n.log.Debugf("%s collector succeeded after %fs.", name, duration.Seconds())
-				success = 1
-			}
-			metricsCh <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), name)
-			metricsCh <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, success, name)
-			wgCollection.Done()
-		}(name, coll)
+				begin := time.Now()
+				ctx, cancel := context.WithTimeout(n.ctx, n.ctxTimeout)
+				defer cancel()
+
+				err := coll.Update(ctx, client, metricsCh)
+				duration := time.Since(begin)
+				var success float64
+
+				if err != nil {
+					n.log.Errorf("%s collector failed after %fs: %s", collName, duration.Seconds(), err)
+					success = 0
+				} else {
+					n.log.Debugf("%s collector succeeded after %fs.", collName, duration.Seconds())
+					success = 1
+				}
+				metricsCh <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), collName, clientName)
+				metricsCh <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, success, collName, clientName)
+			}(collName, coll, clientName, client)
+		}
 	}
 
 	n.log.Debug("Waiting for collectors")

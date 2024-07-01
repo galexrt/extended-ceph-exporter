@@ -67,6 +67,14 @@ below list all existing collectors and the required Ceph components.
 | `rgw_buckets`    | Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster. | RGW            |
 | `rgw_user_quota` |       Exposes RGW User Quota metrics from the Ceph cluster.       | RGW            |
 
+## Multi-Realm Mode
+
+You can use the exporter to scrape metrics from multiple RGW realms by enabling the "multi realm mode" and providing a "multi realm config" file.
+
+An example multi realm config file can be found here [`realms.example.yaml`](realms.example.yaml).
+
+Please note that if the multi realm mode is enabled, the RGW flags (e.g., `--rgw-host`, `--rgw-access-key`, `--rgw-secret-key`) are ignored as the `realms.yaml` (flag `--multi-realm-config`) takes over.
+
 ## Flags
 
 ```console
@@ -79,6 +87,8 @@ Usage of exporter:
       --listen-host string          Exporter listen host (default ":9138")
       --log-level string            Set log level (default "INFO")
       --metrics-path string         Set the metrics endpoint path (default "/metrics")
+      --multi-realm                 Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag) (default false)
+      --multi-realm-config string   Path to your realms.yaml config file (default "realms.yaml")
       --rgw-access-key string       RGW Access Key
       --rgw-host string             RGW Host URL
       --rgw-secret-key string       RGW Secret Key
@@ -91,7 +101,7 @@ exit status 2
 
 ### Requirements
 
-* Golang 1.21.x
+* Golang 1.21.x (or higher should work)
 * Depending on the module requirements, a Ceph cluster with the respective Ceph components.
 
 ### Making Changes to the Helm Chart

@@ -29,3 +29,7 @@ _testmain.go
 /extended-ceph-exporter
 /.tarballs/
 /.build/
+
+/realms.yaml
+
+__debug_bin*

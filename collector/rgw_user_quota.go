@@ -23,32 +23,28 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type RGWUserQuota struct {
+	current *prometheus.Desc
+}
+
 func init() {
 	Factories["rgw_user_quota"] = NewRGWUserQuota
 }
 
-func NewRGWUserQuota(c *Clients) (Collector, error) {
-	return &RGWUserQuota{
-		api: c.RGWAdminAPI,
-	}, nil
+func NewRGWUserQuota() (Collector, error) {
+	return &RGWUserQuota{}, nil
 }
 
-type RGWUserQuota struct {
-	api *admin.API
-
-	current *prometheus.Desc
-}
-
-func (c *RGWUserQuota) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
+func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- prometheus.Metric) error {
 	// Get the "admin" user
-	users, err := c.api.GetUsers(ctx)
+	users, err := client.RGWAdminAPI.GetUsers(ctx)
 	if err != nil {
 		return err
 	}
 
 	// Iterate over users to get quota
 	for _, user := range *users {
-		userQuota, err := c.api.GetUserQuota(ctx, admin.QuotaSpec{
+		userQuota, err := client.RGWAdminAPI.GetUserQuota(ctx, admin.QuotaSpec{
 			UID: user,
 		})
 		if err != nil {
@@ -60,7 +56,8 @@ func (c *RGWUserQuota) Update(ctx context.Context, ch chan<- prometheus.Metric) 
 		}
 
 		labels := map[string]string{
-			"uid": user,
+			"uid":   user,
+			"realm": client.Name,
 		}
 
 		c.current = prometheus.NewDesc(
