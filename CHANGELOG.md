@@ -1,3 +1,8 @@
+## 1.3.0 / 2024-07-01
+
+* [FEATURE] add RGW multi realm mode to allow one exporter to scrape multiple RGW realms at the same time
+* [FEATURE] add `extraObjects` list for additional resources to the Helm chart
+
 ## 1.2.2 / 2024-04-17
 
 * [CHORE] change container image release target
