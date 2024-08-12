@@ -64,7 +64,7 @@ spec:
               port: http-metrics
           {{- with .Values.resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
