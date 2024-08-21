@@ -9,6 +9,22 @@ entries:
           url: https://raw.githubusercontent.com/galexrt/extended-ceph-exporter/main/grafana/ceph-rgw-bucket-usage-overview.png
     apiVersion: v2
     appVersion: v1.3.0
+    created: "2024-08-21T20:59:41.576480375Z"
+    description: A Helm chart for deploying the extended-ceph-exporter to Kubernetes
+    digest: 3bbd776ab7d44c1c520be254fbd4d5629b34feef12bd00660e77fef8ae6da8fd
+    name: extended-ceph-exporter
+    type: application
+    urls:
+    - https://github.com/galexrt/extended-ceph-exporter/releases/download/extended-ceph-exporter-1.5.0/extended-ceph-exporter-1.5.0.tgz
+    version: 1.5.0
+  - annotations:
+      artifacthub.io/category: monitoring-logging
+      artifacthub.io/operator: "false"
+      artifacthub.io/screenshots: |
+        - title: RGW Bucket Usage Overview Grafana Dashboard
+          url: https://raw.githubusercontent.com/galexrt/extended-ceph-exporter/main/grafana/ceph-rgw-bucket-usage-overview.png
+    apiVersion: v2
+    appVersion: v1.3.0
     created: "2024-08-12T17:20:09.048543567Z"
     description: A Helm chart for deploying the extended-ceph-exporter to Kubernetes
     digest: 50b322d5f7bd2c6765f95333a8183d6acd3ee130aff8203ecf18b37ed3350c47
@@ -113,4 +129,4 @@ entries:
     urls:
     - https://github.com/galexrt/extended-ceph-exporter/releases/download/extended-ceph-exporter-1.3.6/extended-ceph-exporter-1.3.6.tgz
     version: 1.3.6
-generated: "2024-08-12T17:20:09.048597929Z"
+generated: "2024-08-21T20:59:41.576545607Z"
