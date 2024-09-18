@@ -1,3 +1,7 @@
+## UNRELEASED / ???
+
+* [CHORE] Update Golang version to 1.23.x
+
 ## 1.3.0 / 2024-07-01
 
 * [FEATURE] add RGW multi realm mode to allow one exporter to scrape multiple RGW realms at the same time
