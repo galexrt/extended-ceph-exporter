@@ -33,3 +33,6 @@ _testmain.go
 /realms.yaml
 
 __debug_bin*
+
+# Nix
+.direnv/
