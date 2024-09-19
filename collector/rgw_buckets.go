@@ -55,6 +55,11 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 			"realm":  client.Name,
 		}
 
+		// Add tenant as label when set
+		if bucketInfo.Tenant != "" {
+			labels["tenant"] = bucketInfo.Tenant
+		}
+
 		c.current = prometheus.NewDesc(
 			prometheus.BuildFQName(Namespace, "rgw", "bucket_size"),
 			"RGW Bucket Size",

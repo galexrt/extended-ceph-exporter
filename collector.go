@@ -131,7 +131,7 @@ func (n *ExtendedCephMetricsCollector) Collect(outgoingCh chan<- prometheus.Metr
 				var success float64
 
 				if err != nil {
-					n.log.Errorf("%s collector failed after %fs: %s", collName, duration.Seconds(), err)
+					n.log.WithError(err).Errorf("%s collector failed after %fs", collName, duration.Seconds())
 					success = 0
 				} else {
 					n.log.Debugf("%s collector succeeded after %fs.", collName, duration.Seconds())

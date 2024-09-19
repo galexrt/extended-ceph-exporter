@@ -61,7 +61,7 @@ func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- pro
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "user_userQuota_max_size"),
+			prometheus.BuildFQName(Namespace, "rgw", "user_quota_max_size"),
 			"RGW User Quota max size",
 			nil, labels)
 		ch <- prometheus.MustNewConstMetric(

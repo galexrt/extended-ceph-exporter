@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ceph/go-ceph/rados"
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/galexrt/extended-ceph-exporter/collector"
 	"github.com/galexrt/extended-ceph-exporter/pkg/config"
@@ -171,32 +172,46 @@ func main() {
 
 		yamlFile, err := os.ReadFile(opts.MultiRealmConfig)
 		if err != nil {
-			log.Printf("failed to load realms config file. %v ", err)
+			log.WithError(err).Printf("failed to load realms config file")
 		}
 		if err := yaml.Unmarshal(yamlFile, realmsCfg); err != nil {
-			log.Fatalf("failed to unmarshal realms config file. %v", err)
+			log.WithError(err).Fatalf("failed to unmarshal realms config file")
 		}
 		realms = append(realms, realmsCfg.Realms...)
+	}
+
+	radosConn, err := rados.NewConn()
+	if err != nil {
+		log.WithError(err).Fatalf("failed to create new rados connection")
+	}
+
+	if err := radosConn.ReadDefaultConfigFile(); err != nil {
+		log.WithError(err).Fatalf("failed to read default ceph/rados config file")
+	}
+
+	if err := radosConn.Connect(); err != nil {
+		log.WithError(err).Fatalf("failed to connect to rados")
 	}
 
 	clients := map[string]*collector.Client{}
 	for _, realm := range realms {
 		rgwAdminAPI, err := CreateRGWAPIConnection(realm)
 		if err != nil {
-			log.Fatal(err)
+			log.WithError(err).Fatalf("failed to create rgw api connection for %s realm", realm.Name)
 		}
 
 		clients[realm.Name] = &collector.Client{
 			Name:        realm.Name,
 			RGWAdminAPI: rgwAdminAPI,
+			Rados:       radosConn,
 		}
 	}
 
 	collectors, err := loadCollectors(opts.CollectorsEnabled)
 	if err != nil {
-		log.Fatalf("Couldn't load collectors: %s", err)
+		log.WithError(err).Fatalf("couldn't load collectors")
 	}
-	log.Infof("Enabled collectors:")
+	log.Infof("enabled collectors:")
 	for n := range collectors {
 		log.Infof(" - %s", n)
 	}
@@ -204,10 +219,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, log, clients, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
-		log.Fatalf("Couldn't register collector: %s", err)
+		log.WithError(err).Fatalf("couldn't register collector")
 	}
 
-	log.Infof("Listening on %s", opts.ListenHost)
+	log.Infof("listening on %s", opts.ListenHost)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<!DOCTYPE html>
 <html>
@@ -225,9 +240,7 @@ func main() {
 			ErrorHandling: promhttp.ContinueOnError,
 		})
 
-	http.HandleFunc(opts.MetricsPath, func(w http.ResponseWriter, r *http.Request) {
-		handler.ServeHTTP(w, r)
-	})
+	http.HandleFunc(opts.MetricsPath, handler.ServeHTTP)
 
 	http.ListenAndServe(opts.ListenHost, nil)
 }

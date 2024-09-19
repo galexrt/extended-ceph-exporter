@@ -62,12 +62,13 @@ below list all existing collectors and the required Ceph components.
 
 ### Enabled by default
 
-| Name             |                            Description                            | Ceph Component |
-| :--------------- | :---------------------------------------------------------------: | -------------- |
-| `rgw_buckets`    | Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster. | RGW            |
-| `rgw_user_quota` |       Exposes RGW User Quota metrics from the Ceph cluster.       | RGW            |
+| Name             |                                  Description                                  | Ceph Component |
+| :--------------- | :---------------------------------------------------------------------------: | -------------- |
+| `rbd_volumes`    | Exposes RBD volumes size (volume pool, id, and name are available as labels). | RBD            |
+| `rgw_buckets`    |       Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster.       | RGW            |
+| `rgw_user_quota` |             Exposes RGW User Quota metrics from the Ceph cluster.             | RGW            |
 
-## Multi-Realm Mode
+## RGW: Multi-Realm Mode
 
 You can use the exporter to scrape metrics from multiple RGW realms by enabling the "multi realm mode" and providing a "multi realm config" file.
 
@@ -101,7 +102,7 @@ exit status 2
 
 ### Requirements
 
-* Golang 1.21.x (or higher should work)
+* Golang 1.23.x (or higher should work)
 * Depending on the module requirements, a Ceph cluster with the respective Ceph components.
 
 ### Making Changes to the Helm Chart
