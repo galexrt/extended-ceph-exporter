@@ -16,7 +16,12 @@ limitations under the License.
 
 package config
 
-type Realms struct {
+type Config struct {
+	RGW RGW `yaml:"rgw"`
+	RBD RBD `yaml:"rbd"`
+}
+
+type RGW struct {
 	Realms []*Realm `yaml:"realms"`
 }
 
@@ -26,4 +31,12 @@ type Realm struct {
 	AccessKey     string `yaml:"accessKey"`
 	SecretKey     string `yaml:"secretKey"`
 	SkipTLSVerify bool   `yaml:"skipTLSVerify"`
+}
+
+type RBD struct {
+	Pools []RBDPool `yaml:"pools"`
+}
+
+type RBDPool struct {
+	Namespaces []string `yaml:"namespaces"`
 }

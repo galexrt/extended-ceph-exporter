@@ -168,7 +168,7 @@ func main() {
 			SkipTLSVerify: opts.SkipTLSVerify,
 		})
 	} else {
-		realmsCfg := &config.Realms{}
+		realmsCfg := &config.RGW{}
 
 		yamlFile, err := os.ReadFile(opts.MultiRealmConfig)
 		if err != nil {
