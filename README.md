@@ -62,11 +62,16 @@ below list all existing collectors and the required Ceph components.
 
 ### Enabled by default
 
-| Name             |                                  Description                                  | Ceph Component |
-| :--------------- | :---------------------------------------------------------------------------: | -------------- |
-| `rbd_volumes`    | Exposes RBD volumes size (volume pool, id, and name are available as labels). | RBD            |
-| `rgw_buckets`    |       Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster.       | RGW            |
-| `rgw_user_quota` |             Exposes RGW User Quota metrics from the Ceph cluster.             | RGW            |
+| Name             |                            Description                            | Ceph Component |
+| :--------------- | :---------------------------------------------------------------: | -------------- |
+| `rgw_buckets`    | Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster. | RGW            |
+| `rgw_user_quota` |       Exposes RGW User Quota metrics from the Ceph cluster.       | RGW            |
+
+### Disabled by default
+
+| Name          |                                  Description                                  | Ceph Component |
+| :------------ | :---------------------------------------------------------------------------: | -------------- |
+| `rbd_volumes` | Exposes RBD volumes size (volume pool, id, and name are available as labels). | RBD            |
 
 ## RGW: Multi-Realm Mode
 
@@ -83,16 +88,18 @@ $ extended-ceph-exporter --help
 Usage of exporter:
       --cache-duration duration     Cache duration in seconds (default 20s)
       --cache-enabled               Enable metrics caching to reduce load
-      --collectors-enabled string   List of enabled collectors (default "rgw_user_quota,rgw_buckets")
+      --collectors-enabled string   List of enabled collectors (please refer to the readme for a list of all available collectors) (default "rgw_user_quota,rgw_buckets")
       --context-timeout duration    Context timeout for collecting metrics per collector (default 1m0s)
+      --http-timeout duration       HTTP request timeout for collecting metrics for RGW API HTTP client (default 55s)
       --listen-host string          Exporter listen host (default ":9138")
       --log-level string            Set log level (default "INFO")
       --metrics-path string         Set the metrics endpoint path (default "/metrics")
-      --multi-realm                 Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag) (default false)
+      --multi-realm                 Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)
       --multi-realm-config string   Path to your realms.yaml config file (default "realms.yaml")
       --rgw-access-key string       RGW Access Key
       --rgw-host string             RGW Host URL
       --rgw-secret-key string       RGW Secret Key
+      --skip-tls-verify             Skip TLS cert verification
       --version                     Show version info and exit
 pflag: help requested
 exit status 2

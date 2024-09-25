@@ -1,6 +1,8 @@
-## UNRELEASED / ???
+## 1.4.0 / 2024-09-25
 
-* [CHORE] Update Golang version to 1.23.x
+* [FEATURE] add tenant name label to the RGW bucket and usage metrics
+* [FEATURE] add basic RBD volumes size collector (disabled by default)
+* [CHORE] update Golang version to 1.23.x
 
 ## 1.3.0 / 2024-07-01
 
