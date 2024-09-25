@@ -20,7 +20,7 @@ jobs:
         with:
           go-version: "^1.23"
 
-      - uses: cachix/install-nix-action@v28
+      - uses: cachix/install-nix-action@v27
         with:
           nix_path: nixpkgs=channel:nixos-unstable
 
