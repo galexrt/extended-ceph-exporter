@@ -20,6 +20,27 @@ Due to the closure of Koor Technologies, Inc. this repository has been made to c
     radosgw-admin user info --uid extended-ceph-exporter | jq '.keys[0].secret_key'
     ```
 
+If using Rook to manage rgw, the admin user may also be created using a `CephOjectStoreUser` resource:
+
+```yaml
+---
+apiVersion: ceph.rook.io/v1
+kind: CephObjectStoreUser
+metadata:
+  name: extended-ceph-exporter
+  namespace: rook-ceph
+spec:
+  store: <objectstore-name>
+  clusterNamespace: rook-ceph
+  displayName: extended-ceph-exporter
+  capabilities:
+    buckets: read
+    users: read
+    usage: read
+    metadata: read
+    zone: read
+```
+
 ## Quickstart
 
 * Clone the repository:
