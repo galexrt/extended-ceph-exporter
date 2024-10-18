@@ -1,3 +1,8 @@
+## 1.5.0 / 2024-10-08
+
+* [FEATURE] WARNING! Currently only the container image has the `rbd_volumes` collector available
+* [FEATURE] replace logrus with zap logger
+
 ## 1.4.0 / 2024-09-25
 
 * [FEATURE] add tenant name label to the RGW bucket and usage metrics

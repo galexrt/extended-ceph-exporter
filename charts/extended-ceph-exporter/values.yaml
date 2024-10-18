@@ -131,11 +131,12 @@ config:
     # -- RGW admin secret key
     # @default -- Randomly generated
     secretKey: null
-  multiMode:
-    # -- If RGW realm multi mode should be enabled, you must provide a volume mount with a config file named `reals.yaml`. Checkout the readme section for more information https://github.com/galexrt/extended-ceph-exporter/tree/multiple_rgw_realms?tab=readme-ov-file#multi-realm-mode
-    enabled: false
-    # -- RGW realm multi mode config file path inside the exporter container
-    realms: "/realms/realms.yaml"
+    # -- RGW multi mode config (previously located directly under the `.config` section and not `.config.rgw`)
+    multiMode:
+      # -- If RGW realm multi mode should be enabled, you must provide a volume mount with a config file named `reals.yaml`. Checkout the readme section for more information https://github.com/galexrt/extended-ceph-exporter/tree/multiple_rgw_realms?tab=readme-ov-file#multi-realm-mode
+      enabled: false
+      # -- RGW realm multi mode config file path inside the exporter container
+      realms: "/realms/realms.yaml"
 
 # -- Will be put in a Secret and used as env vars
 additionalEnv: {}

@@ -18,6 +18,7 @@ package collector
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ceph/go-ceph/rbd"
 	"github.com/prometheus/client_golang/prometheus"
@@ -48,12 +49,14 @@ func (c *RBDVolumes) Update(ctx context.Context, client *Client, ch chan<- prome
 	for _, pool := range pools {
 		ioctx, err := client.Rados.OpenIOContext(pool)
 		if err != nil {
-			return err
+			errs = multierr.Append(errs, fmt.Errorf("failed to open rados IO context for %s pool. %w", pool, err))
+			continue
 		}
 
 		images, err := rbd.GetImageNames(ioctx)
 		if err != nil {
-			return err
+			errs = multierr.Append(errs, fmt.Errorf("failed to get image names from %s pool. %w", pool, err))
+			continue
 		}
 
 		for _, image := range images {
@@ -61,7 +64,7 @@ func (c *RBDVolumes) Update(ctx context.Context, client *Client, ch chan<- prome
 
 			id, err := info.GetId()
 			if err != nil {
-				errs = multierr.Append(errs, err)
+				errs = multierr.Append(errs, fmt.Errorf("failed to get image id for %s/%s. %w", pool, image, err))
 				continue
 			}
 
@@ -73,7 +76,7 @@ func (c *RBDVolumes) Update(ctx context.Context, client *Client, ch chan<- prome
 
 			size, err := info.GetSize()
 			if err != nil {
-				errs = multierr.Append(errs, err)
+				errs = multierr.Append(errs, fmt.Errorf("failed to get image size for %s/%s. %w", pool, image, err))
 				continue
 			}
 

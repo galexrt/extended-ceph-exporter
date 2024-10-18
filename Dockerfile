@@ -1,4 +1,4 @@
-FROM quay.io/prometheus/busybox:latest
+FROM docker.io/library/debian:bookworm-slim
 
 ARG BUILD_DATE="N/A"
 ARG REVISION="N/A"
@@ -14,6 +14,9 @@ LABEL org.opencontainers.image.authors="Alexander Trost <alexander@galexrt>" \
     org.opencontainers.image.vendor="galexrt" \
     org.opencontainers.image.version="N/A"
 
-ADD .build/linux-amd64/extended-ceph-exporter /bin/extended-ceph-exporter
+RUN apt-get update && \
+    apt-get install -y librbd-dev librados-dev
+
+COPY .build/linux-amd64/extended-ceph-exporter /bin/extended-ceph-exporter
 
 ENTRYPOINT ["/bin/extended-ceph-exporter"]

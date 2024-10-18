@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -33,24 +34,25 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
-	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 )
 
 var (
 	flags                    = flag.NewFlagSet("exporter", flag.ExitOnError)
-	defaultEnabledCollectors = "rgw_user_quota,rgw_buckets"
-	log                      = logrus.New()
+	defaultEnabledCollectors = []string{"rgw_user_quota", "rgw_buckets"}
 )
 
 type CmdLineOpts struct {
 	Version  bool
 	LogLevel string
 
-	CollectorsEnabled string
-	MultiRealm        bool
-	MultiRealmConfig  string
+	CollectorsEnabled []string
+
+	MultiRealm       bool
+	MultiRealmConfig string
 
 	RGWHost      string
 	RGWAccessKey string
@@ -76,7 +78,7 @@ func init() {
 	flags.BoolVar(&opts.Version, "version", false, "Show version info and exit")
 	flags.StringVar(&opts.LogLevel, "log-level", "INFO", "Set log level")
 
-	flags.StringVar(&opts.CollectorsEnabled, "collectors-enabled", defaultEnabledCollectors, "List of enabled collectors (please refer to the readme for a list of all available collectors)")
+	flags.StringSliceVar(&opts.CollectorsEnabled, "collectors-enabled", defaultEnabledCollectors, "List of enabled collectors (please refer to the readme for a list of all available collectors)")
 
 	flags.BoolVar(&opts.MultiRealm, "multi-realm", false, "Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)")
 	flags.StringVar(&opts.MultiRealmConfig, "multi-realm-config", "realms.yaml", "Path to your realms.yaml config file")
@@ -130,7 +132,8 @@ func parseFlagsAndEnvVars() error {
 
 func main() {
 	if err := parseFlagsAndEnvVars(); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
 	}
 
 	if opts.Version {
@@ -138,14 +141,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	log.Out = os.Stdout
-
-	// Set log level
-	l, err := logrus.ParseLevel(opts.LogLevel)
+	loggerConfig := zap.NewProductionConfig()
+	level, err := zapcore.ParseLevel(opts.LogLevel)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, fmt.Errorf("unable to parse log level. %w", err))
+		os.Exit(1)
 	}
-	log.SetLevel(l)
+	loggerConfig.Level.SetLevel(level)
+
+	logger, err := loggerConfig.Build()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, fmt.Errorf("failed to set up logger. %w", err))
+		os.Exit(1)
+	}
 
 	var realms []*config.Realm
 	if !opts.MultiRealm {
@@ -153,10 +161,10 @@ func main() {
 		for _, f := range requiredFlags {
 			flag := flags.Lookup(f)
 			if flag == nil {
-				log.Fatalf("required flag %s not found during lookup in flags list, please report this to the developer", f)
+				logger.Fatal(fmt.Sprintf("required flag %s not found during lookup in flags list, please report this to the developer", f))
 			}
 			if !flag.Changed {
-				log.Fatalf("required flag %s not set", flag.Name)
+				logger.Fatal(fmt.Sprintf("required flag %s not set", flag.Name))
 			}
 		}
 
@@ -172,32 +180,35 @@ func main() {
 
 		yamlFile, err := os.ReadFile(opts.MultiRealmConfig)
 		if err != nil {
-			log.WithError(err).Printf("failed to load realms config file")
+			logger.Fatal("failed to load realms config file", zap.Error(err))
 		}
 		if err := yaml.Unmarshal(yamlFile, realmsCfg); err != nil {
-			log.WithError(err).Fatalf("failed to unmarshal realms config file")
+			logger.Fatal("failed to unmarshal realms config file", zap.Error(err))
 		}
 		realms = append(realms, realmsCfg.Realms...)
 	}
 
-	radosConn, err := rados.NewConn()
-	if err != nil {
-		log.WithError(err).Fatalf("failed to create new rados connection")
-	}
+	var radosConn *rados.Conn
+	if slices.Contains(opts.CollectorsEnabled, "") {
+		radosConn, err := rados.NewConn()
+		if err != nil {
+			logger.Fatal("failed to create new rados connection", zap.Error(err))
+		}
 
-	if err := radosConn.ReadDefaultConfigFile(); err != nil {
-		log.WithError(err).Fatalf("failed to read default ceph/rados config file")
-	}
+		if err := radosConn.ReadDefaultConfigFile(); err != nil {
+			logger.Fatal("failed to read default ceph/rados config file", zap.Error(err))
+		}
 
-	if err := radosConn.Connect(); err != nil {
-		log.WithError(err).Fatalf("failed to connect to rados")
+		if err := radosConn.Connect(); err != nil {
+			logger.Fatal("failed to create rados connection", zap.Error(err))
+		}
 	}
 
 	clients := map[string]*collector.Client{}
 	for _, realm := range realms {
 		rgwAdminAPI, err := CreateRGWAPIConnection(realm)
 		if err != nil {
-			log.WithError(err).Fatalf("failed to create rgw api connection for %s realm", realm.Name)
+			logger.Fatal(fmt.Sprintf("failed to create rgw api connection for %s realm", realm.Name), zap.Error(err))
 		}
 
 		clients[realm.Name] = &collector.Client{
@@ -209,20 +220,22 @@ func main() {
 
 	collectors, err := loadCollectors(opts.CollectorsEnabled)
 	if err != nil {
-		log.WithError(err).Fatalf("couldn't load collectors")
+		logger.Fatal("couldn't load collectors", zap.Error(err))
 	}
-	log.Infof("enabled collectors:")
-	for n := range collectors {
-		log.Infof(" - %s", n)
+
+	cs := make([]string, 0, len(collectors))
+	for k := range collectors {
+		cs = append(cs, k)
 	}
+	logger.Info("enabled collectors", zap.Strings("collectors", cs))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, log, clients, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
-		log.WithError(err).Fatalf("couldn't register collector")
+	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, logger, clients, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
+		logger.Fatal("couldn't register collector", zap.Error(err))
 	}
 
-	log.Infof("listening on %s", opts.ListenHost)
+	logger.Info(fmt.Sprintf("listening on %s", opts.ListenHost))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<!DOCTYPE html>
 <html>
@@ -236,7 +249,7 @@ func main() {
 
 	handler := promhttp.HandlerFor(prometheus.DefaultGatherer,
 		promhttp.HandlerOpts{
-			ErrorLog:      log,
+			ErrorLog:      zap.NewStdLog(logger),
 			ErrorHandling: promhttp.ContinueOnError,
 		})
 
@@ -265,9 +278,10 @@ func CreateRGWAPIConnection(realm *config.Realm) (*admin.API, error) {
 	return co, nil
 }
 
-func loadCollectors(list string) (map[string]collector.Collector, error) {
+func loadCollectors(list []string) (map[string]collector.Collector, error) {
 	collectors := map[string]collector.Collector{}
-	for _, name := range strings.Split(list, ",") {
+
+	for _, name := range list {
 		fn, ok := collector.Factories[name]
 		if !ok {
 			return nil, fmt.Errorf("collector '%s' not available", name)

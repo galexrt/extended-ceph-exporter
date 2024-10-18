@@ -86,21 +86,21 @@ Please note that if the multi realm mode is enabled, the RGW flags (e.g., `--rgw
 ```console
 $ extended-ceph-exporter --help
 Usage of exporter:
-      --cache-duration duration     Cache duration in seconds (default 20s)
-      --cache-enabled               Enable metrics caching to reduce load
-      --collectors-enabled string   List of enabled collectors (please refer to the readme for a list of all available collectors) (default "rgw_user_quota,rgw_buckets")
-      --context-timeout duration    Context timeout for collecting metrics per collector (default 1m0s)
-      --http-timeout duration       HTTP request timeout for collecting metrics for RGW API HTTP client (default 55s)
-      --listen-host string          Exporter listen host (default ":9138")
-      --log-level string            Set log level (default "INFO")
-      --metrics-path string         Set the metrics endpoint path (default "/metrics")
-      --multi-realm                 Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)
-      --multi-realm-config string   Path to your realms.yaml config file (default "realms.yaml")
-      --rgw-access-key string       RGW Access Key
-      --rgw-host string             RGW Host URL
-      --rgw-secret-key string       RGW Secret Key
-      --skip-tls-verify             Skip TLS cert verification
-      --version                     Show version info and exit
+      --cache-duration duration      Cache duration in seconds (default 20s)
+      --cache-enabled                Enable metrics caching to reduce load
+      --collectors-enabled strings   List of enabled collectors (please refer to the readme for a list of all available collectors) (default [rgw_user_quota,rgw_buckets])
+      --context-timeout duration     Context timeout for collecting metrics per collector (default 1m0s)
+      --http-timeout duration        HTTP request timeout for collecting metrics for RGW API HTTP client (default 55s)
+      --listen-host string           Exporter listen host (default ":9138")
+      --log-level string             Set log level (default "INFO")
+      --metrics-path string          Set the metrics endpoint path (default "/metrics")
+      --multi-realm                  Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)
+      --multi-realm-config string    Path to your realms.yaml config file (default "realms.yaml")
+      --rgw-access-key string        RGW Access Key
+      --rgw-host string              RGW Host URL
+      --rgw-secret-key string        RGW Secret Key
+      --skip-tls-verify              Skip TLS cert verification
+      --version                      Show version info and exit
 pflag: help requested
 exit status 2
 ```
@@ -110,7 +110,9 @@ exit status 2
 ### Requirements
 
 * Golang 1.23.x (or higher should work)
-* Depending on the module requirements, a Ceph cluster with the respective Ceph components.
+* Ceph development files (`librados`, `librdb`)
+    * If you are using `nix`, the `flake.nix` should be satisfy these lib dependencies.
+* `helm`
 
 ### Making Changes to the Helm Chart
 

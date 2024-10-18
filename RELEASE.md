@@ -1,4 +1,4 @@
-# RELEASE PROCESS
+# Release Process
 
 To create a new release (example is for release `v0.1.2`):
 
