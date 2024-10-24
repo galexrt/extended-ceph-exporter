@@ -38,8 +38,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          promu crossbuild
-          promu crossbuild tarballs
+          make crossbuild
           promu checksum .tarballs
           promu release .tarballs
 
