@@ -93,9 +93,9 @@ below list all existing collectors and the required Ceph components.
 
 ### Disabled by default
 
-| Name          |                                  Description                                  | Ceph Component |
-| :------------ | :---------------------------------------------------------------------------: | -------------- |
-| `rbd_volumes` | Exposes RBD volumes size (volume pool, id, and name are available as labels). | RBD            |
+| Name          |                                                Description                                                 | Ceph Component |
+| :------------ | :--------------------------------------------------------------------------------------------------------: | -------------- |
+| `rbd_volumes` | Exposes RBD volumes size (volume pool, id, and name are available as labels). Not available at the moment. | RBD            |
 
 ## RGW: Multi-Realm Mode
 

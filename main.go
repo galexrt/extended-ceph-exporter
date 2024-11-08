@@ -22,11 +22,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"slices"
 	"strings"
 	"time"
 
-	"github.com/ceph/go-ceph/rados"
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/galexrt/extended-ceph-exporter/collector"
 	"github.com/galexrt/extended-ceph-exporter/pkg/config"
@@ -188,22 +186,6 @@ func main() {
 		realms = append(realms, realmsCfg.Realms...)
 	}
 
-	var radosConn *rados.Conn
-	if slices.Contains(opts.CollectorsEnabled, "") {
-		radosConn, err := rados.NewConn()
-		if err != nil {
-			logger.Fatal("failed to create new rados connection", zap.Error(err))
-		}
-
-		if err := radosConn.ReadDefaultConfigFile(); err != nil {
-			logger.Fatal("failed to read default ceph/rados config file", zap.Error(err))
-		}
-
-		if err := radosConn.Connect(); err != nil {
-			logger.Fatal("failed to create rados connection", zap.Error(err))
-		}
-	}
-
 	clients := map[string]*collector.Client{}
 	for _, realm := range realms {
 		rgwAdminAPI, err := CreateRGWAPIConnection(realm)
@@ -214,7 +196,6 @@ func main() {
 		clients[realm.Name] = &collector.Client{
 			Name:        realm.Name,
 			RGWAdminAPI: rgwAdminAPI,
-			Rados:       radosConn,
 		}
 	}
 
