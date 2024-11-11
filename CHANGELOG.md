@@ -1,3 +1,7 @@
+## 1.6.0 / 2024-11-11
+
+* [BREAKING] The `rbd_volumes` has been removed till the multi-arch build issues can be addressed.
+
 ## 1.5.0 / 2024-10-08
 
 * [FEATURE] WARNING! Currently only the container image has the `rbd_volumes` collector available
