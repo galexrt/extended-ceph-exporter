@@ -151,7 +151,7 @@ postInstallJob:
   image:
     repository: quay.io/ceph/ceph
     pullPolicy: IfNotPresent
-    tag: v17.2.7
+    tag: v17.2.8
 
 # -- Extra volumes to add to the deployment
 volumes: []
