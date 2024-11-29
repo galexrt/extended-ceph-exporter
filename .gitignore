@@ -26,9 +26,10 @@ _testmain.go
 *.test
 *.prof
 
-/extended-ceph-exporter
+/extended-ceph-exporter*
 /.tarballs/
 /.build/
+/.output/
 
 /realms.yaml
 

@@ -1,5 +1,7 @@
 SHELL := /usr/bin/env bash
 
+comma=,
+
 PROJECTNAME ?= extended-ceph-exporter
 
 GO111MODULE  ?= on
@@ -38,12 +40,13 @@ pkgs = $(shell go list ./... | grep -v /vendor/ | grep -v /test/)
 
 CONTAINER_IMAGE_NAME ?= docker.io/galexrt/extended-ceph-exporter
 CONTAINER_IMAGE_TAG  ?= $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
+CONTAINER_ARCHES ?= linux/amd64,linux/arm64
 
 all: format style vet test build
 
 build: promu
 	@echo ">> building binaries"
-	GO111MODULE=$(GO111MODULE) $(PROMU) build --prefix $(PREFIX)
+	$(PROMU) build -v --prefix $(PREFIX)
 
 check_license:
 	@OUTPUT="$$($(PROMU) check licenses)"; \
@@ -55,15 +58,11 @@ check_license:
 		echo "All files with license header"; \
 	fi
 
-crossbuild: promu
-	$(PROMU) crossbuild
-	$(PROMU) crossbuild tarballs
+container:
+	$(MAKE) container-build
 
-docker: crossbuild
-	$(MAKE) docker-build
-
-docker-build:
-	@echo ">> building docker image"
+container-build:
+	@echo ">> building container image"
 	docker build \
 		--build-arg BUILD_DATE="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
 		--build-arg REVISION="$(shell git rev-parse HEAD)" \
@@ -71,9 +70,43 @@ docker-build:
 		.
 	docker tag "$(CONTAINER_IMAGE_NAME):$(CONTAINER_IMAGE_TAG)" "$(CONTAINER_IMAGE_NAME):latest"
 
-docker-publish:
+container-publish:
 	docker push "$(CONTAINER_IMAGE_NAME):$(CONTAINER_IMAGE_TAG)"
 	docker push "$(CONTAINER_IMAGE_NAME):latest"
+
+container-crossbuild-prepare:
+	if ! docker buildx ls | grep -q container-builder; then \
+		docker buildx create \
+			--name container-builder \
+			--driver docker-container \
+			--bootstrap --use; \
+	fi
+
+container-crossbuild: container-crossbuild-prepare
+	docker buildx build \
+		--progress=plain \
+		--platform $(CONTAINER_ARCHES) \
+		--build-arg BUILD_DATE="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		--build-arg REVISION="$(shell git rev-parse HEAD)" \
+		-t "$(CONTAINER_IMAGE_NAME):$(CONTAINER_IMAGE_TAG)" \
+		-t "ghcr.io/galexrt/extended-ceph-exporter:$(CONTAINER_IMAGE_TAG)" \
+		--push \
+		.
+
+	$(MAKE) container-crossbuild-binaries
+
+container-crossbuild-binaries:
+	mkdir -p .output
+	cd .output/ && \
+	for ARCH in $(subst $(comma), ,$(CONTAINER_ARCHES)); do \
+		RELEASE_FILE_NAME="extended-ceph-exporter-$$(echo $(CONTAINER_IMAGE_TAG) | sed -e 's/^v//').$$(echo $$ARCH | sed -e 's/\//-/g')"; \
+		mkdir -p "$$RELEASE_FILE_NAME"; \
+		cp -vf ../LICENSE "$$RELEASE_FILE_NAME/"; \
+		docker cp $$(docker create --rm --platform $$(echo $$ARCH | cut -d'/' -f2) --name ece-tc $(CONTAINER_IMAGE_NAME):$(CONTAINER_IMAGE_TAG)):/bin/extended-ceph-exporter "$$RELEASE_FILE_NAME/" && \
+			docker rm ece-tc; \
+		tar cvf $$RELEASE_FILE_NAME.tar.gz "$$RELEASE_FILE_NAME"; \
+		rm -rf "$$RELEASE_FILE_NAME"; \
+	done
 
 format:
 	go fmt $(pkgs)
@@ -111,4 +144,4 @@ vet:
 	@echo ">> vetting code"
 	@$(GO) vet $(pkgs)
 
-.PHONY: all build crossbuild docker docker-publish format promu style tarball test test-short vet
+.PHONY: all build container container-publish format promu style tarball test test-short vet

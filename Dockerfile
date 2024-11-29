@@ -1,9 +1,23 @@
-FROM docker.io/library/debian:bookworm-slim
+# syntax=docker/dockerfile:1
+
+# Golang Builder
+FROM docker.io/library/debian:trixie-slim AS gobuilder
+
+WORKDIR /go/src/github.com/galexrt/extended-ceph-exporter/
+COPY . ./
+RUN apt-get update && \
+    apt-get install -y curl git make golang\
+         librbd-dev librados-dev && \
+    git config --global --add safe.directory /go/src/github.com/galexrt/extended-ceph-exporter
+RUN make build
+
+# Final Image
+FROM docker.io/library/debian:trixie-slim
 
 ARG BUILD_DATE="N/A"
 ARG REVISION="N/A"
 
-LABEL org.opencontainers.image.authors="Alexander Trost <alexander@galexrt>" \
+LABEL org.opencontainers.image.authors="Alexander Trost <me@galexrt.moe>" \
     org.opencontainers.image.created="${BUILD_DATE}" \
     org.opencontainers.image.title="galexrt/extended-ceph-exporter" \
     org.opencontainers.image.description="A Prometheus exporter to provide \"extended\" metrics about a Ceph cluster's running components (e.g., RGW)." \
@@ -17,6 +31,6 @@ LABEL org.opencontainers.image.authors="Alexander Trost <alexander@galexrt>" \
 RUN apt-get update && \
     apt-get install -y librbd-dev librados-dev
 
-COPY .build/linux-amd64/extended-ceph-exporter /bin/extended-ceph-exporter
+COPY --from=gobuilder /go/src/github.com/galexrt/extended-ceph-exporter/extended-ceph-exporter /bin/extended-ceph-exporter
 
 ENTRYPOINT ["/bin/extended-ceph-exporter"]
