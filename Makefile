@@ -122,6 +122,9 @@ promu:
 	cp $(PROMU_TMP)/promu-$(PROMU_VERSION).$(GO_BUILD_PLATFORM)/promu $(FIRST_GOPATH)/bin/promu
 	rm -r $(PROMU_TMP)
 
+promu-release:
+	$(PROMU) release .output/
+
 style:
 	@echo ">> checking code style"
 	@! gofmt -d $(shell find . -path ./vendor -prune -o -name '*.go' -print) | grep '^'
