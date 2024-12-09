@@ -1,3 +1,7 @@
+## 1.6.1 / 2024-12-09
+
+* [CI] crossbuild for amd64 and arm64 platforms via `buildx` - This is a test release to see if it fully works.
+
 ## 1.6.0 / 2024-11-11
 
 * [BREAKING] The `rbd_volumes` has been removed till the multi-arch build issues can be addressed.
