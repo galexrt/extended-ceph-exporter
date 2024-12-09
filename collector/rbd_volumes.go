@@ -75,6 +75,14 @@ func (c *RBDVolumes) Update(ctx context.Context, client *Client, ch chan<- prome
 				namespaces = client.Config.RBD.Pools[idx].Namespaces
 			}
 		}
+		pNamespaces, err := rbd.NamespaceList(ioctx)
+		if err != nil {
+			errs = multierr.Append(errs, fmt.Errorf("failed to list namespaces for %s pool. %w", pool, err))
+			continue
+		}
+		if len(pNamespaces) > 0 {
+			namespaces = pNamespaces
+		}
 
 		for _, namespace := range namespaces {
 			ioctx.SetNamespace(namespace)
