@@ -1,3 +1,11 @@
+## 1.7.0 / 2024-12-09
+
+* [FEATURE] **BREAKING CHANGES** Most flags have been replaced by the `config.yaml` (an example can be found [here `config.example.yaml`](/config.example.yaml), Helm chart values have been updated as well [`.config` section](https://github.com/galexrt/extended-ceph-exporter/blob/main/charts/extended-ceph-exporter/values.yaml#L115)).
+* [FEATURE] **BREAKING CHANGES** RGW Multi realm is now the default! It can't be disabled, the way to go is to use a `realms.yaml` and/or the appropriate Helm values now.
+* [HELM] **BREAKING CHANGES** The RGW options have been moved to the `postInstallJob` section in the chart. Previous RGW options/multi realm config sections are not automatically migrated! You must now use the `.config.rgwRealms` section.
+
+Should there be any issues or questions with these changes, please open an issue.
+
 ## 1.6.1 / 2024-12-09
 
 * [CI] crossbuild for amd64 and arm64 platforms via `buildx` - This is a test release to see if it fully works.
