@@ -19,6 +19,7 @@ package collector
 import (
 	"context"
 
+	"github.com/ceph/go-ceph/rados"
 	rgwadmin "github.com/ceph/go-ceph/rgw/admin"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -29,6 +30,7 @@ type Client struct {
 	Name string
 
 	RGWAdminAPI *rgwadmin.API
+	Rados       *rados.Conn
 }
 
 type Collector interface {
