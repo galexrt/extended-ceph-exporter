@@ -24,20 +24,17 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/ceph/go-ceph/rados"
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/galexrt/extended-ceph-exporter/collector"
 	"github.com/galexrt/extended-ceph-exporter/pkg/config"
-	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 	flag "github.com/spf13/pflag"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -46,92 +43,36 @@ var (
 )
 
 type CmdLineOpts struct {
-	Version  bool
-	LogLevel string
+	Version bool
+
+	ConfigFile string
+	RealmsFile string
 
 	CollectorsEnabled []string
-
-	MultiRealm       bool
-	MultiRealmConfig string
-
-	RGWHost      string
-	RGWAccessKey string
-	RGWSecretKey string
-
-	SkipTLSVerify bool
-
-	ListenHost  string
-	MetricsPath string
-
-	CtxTimeout  time.Duration
-	HttpTimeout time.Duration
-
-	CachingEnabled bool
-	CacheDuration  time.Duration
 }
 
 var opts CmdLineOpts
 
-var requiredFlags = []string{"rgw-host", "rgw-access-key", "rgw-secret-key"}
-
 func init() {
 	flags.BoolVar(&opts.Version, "version", false, "Show version info and exit")
-	flags.StringVar(&opts.LogLevel, "log-level", "INFO", "Set log level")
+
+	flags.StringVar(&opts.ConfigFile, "config", "", "Config file path (default name `config.yaml` , current and `/config` directory).")
+	flags.StringVar(&opts.RealmsFile, "realms-config", "", "Config file path (default name `realms.yaml` , current and `/realms` directory; old flag name: `--multi-realm-config`).")
 
 	flags.StringSliceVar(&opts.CollectorsEnabled, "collectors-enabled", defaultEnabledCollectors, "List of enabled collectors (please refer to the readme for a list of all available collectors)")
-
-	flags.BoolVar(&opts.MultiRealm, "multi-realm", false, "Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)")
-	flags.StringVar(&opts.MultiRealmConfig, "multi-realm-config", "realms.yaml", "Path to your realms.yaml config file")
-
-	flags.StringVar(&opts.RGWHost, "rgw-host", "", "RGW Host URL")
-	flags.StringVar(&opts.RGWAccessKey, "rgw-access-key", "", "RGW Access Key")
-	flags.StringVar(&opts.RGWSecretKey, "rgw-secret-key", "", "RGW Secret Key")
-
-	flags.BoolVar(&opts.SkipTLSVerify, "skip-tls-verify", false, "Skip TLS cert verification")
-
-	flags.StringVar(&opts.ListenHost, "listen-host", ":9138", "Exporter listen host")
-	flags.StringVar(&opts.MetricsPath, "metrics-path", "/metrics", "Set the metrics endpoint path")
-
-	flags.DurationVar(&opts.CtxTimeout, "context-timeout", 60*time.Second, "Context timeout for collecting metrics per collector")
-	flags.DurationVar(&opts.HttpTimeout, "http-timeout", 55*time.Second, "HTTP request timeout for collecting metrics for RGW API HTTP client")
-
-	flags.BoolVar(&opts.CachingEnabled, "cache-enabled", false, "Enable metrics caching to reduce load")
-	flags.DurationVar(&opts.CacheDuration, "cache-duration", 20*time.Second, "Cache duration in seconds")
 }
 
-func flagNameFromEnvName(s string) string {
-	s = strings.ToLower(s)
-	s = strings.ReplaceAll(s, "_", "-")
-	return s
-}
-
-func parseFlagsAndEnvVars() error {
-	godotenv.Load(".env")
-
-	for _, v := range os.Environ() {
-		vals := strings.SplitN(v, "=", 2)
-
-		if !strings.HasPrefix(vals[0], "CEPH_METRICS_") {
-			continue
-		}
-		flagName := flagNameFromEnvName(strings.ReplaceAll(vals[0], "CEPH_METRICS_", ""))
-
-		fn := flags.Lookup(flagName)
-		if fn == nil || fn.Changed {
-			continue
-		}
-
-		if err := fn.Value.Set(vals[1]); err != nil {
-			return err
-		}
-		fn.Changed = true
+func aliasNormalizeFunc(f *flag.FlagSet, name string) flag.NormalizedName {
+	switch name {
+	case "multi-realm-config":
+		name = "realms-config"
 	}
-
-	return flags.Parse(os.Args[1:])
+	return flag.NormalizedName(name)
 }
 
 func main() {
-	if err := parseFlagsAndEnvVars(); err != nil {
+	flags.SetNormalizeFunc(aliasNormalizeFunc)
+	if err := flags.Parse(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
 	}
@@ -141,12 +82,19 @@ func main() {
 		os.Exit(0)
 	}
 
-	loggerConfig := zap.NewProductionConfig()
-	level, err := zapcore.ParseLevel(opts.LogLevel)
+	cfg, realmsCfg, err := config.Load(opts.ConfigFile, opts.RealmsFile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, fmt.Errorf("failed to load config file. %w", err))
+		os.Exit(1)
+	}
+
+	level, err := zapcore.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, fmt.Errorf("unable to parse log level. %w", err))
 		os.Exit(1)
 	}
+
+	loggerConfig := zap.NewProductionConfig()
 	loggerConfig.Level.SetLevel(level)
 
 	logger, err := loggerConfig.Build()
@@ -155,48 +103,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	var realms []*config.Realm
-	if !opts.MultiRealm {
-		// Check if required flags are given
-		for _, f := range requiredFlags {
-			flag := flags.Lookup(f)
-			if flag == nil {
-				logger.Fatal(fmt.Sprintf("required flag %s not found during lookup in flags list, please report this to the developer", f))
-			}
-			if !flag.Changed {
-				logger.Fatal(fmt.Sprintf("required flag %s not set", flag.Name))
-			}
-		}
-
-		realms = append(realms, &config.Realm{
-			Name:          "default",
-			Host:          opts.RGWHost,
-			AccessKey:     opts.RGWAccessKey,
-			SecretKey:     opts.RGWSecretKey,
-			SkipTLSVerify: opts.SkipTLSVerify,
-		})
-	} else {
-		realmsCfg := &config.RGW{}
-
-		yamlFile, err := os.ReadFile(opts.MultiRealmConfig)
-		if err != nil {
-			logger.Fatal("failed to load realms config file", zap.Error(err))
-		}
-		if err := yaml.Unmarshal(yamlFile, realmsCfg); err != nil {
-			logger.Fatal("failed to unmarshal realms config file", zap.Error(err))
-		}
-		realms = append(realms, realmsCfg.Realms...)
-	}
-
 	var radosConn *rados.Conn
-	if slices.Contains(opts.CollectorsEnabled, "") {
+	if slices.ContainsFunc(opts.CollectorsEnabled, func(c string) bool {
+		return strings.HasPrefix(c, "rbd_")
+	}) {
 		radosConn, err := rados.NewConn()
 		if err != nil {
 			logger.Fatal("failed to create new rados connection", zap.Error(err))
 		}
 
-		if err := radosConn.ReadDefaultConfigFile(); err != nil {
-			logger.Fatal("failed to read default ceph/rados config file", zap.Error(err))
+		if cfg.RBD.CephConfig != "" {
+			if err := radosConn.ReadConfigFile(cfg.RBD.CephConfig); err != nil {
+				logger.Fatal("failed to read custom ceph/rados config file", zap.String("path", cfg.RBD.CephConfig), zap.Error(err))
+			}
+		} else {
+			if err := radosConn.ReadDefaultConfigFile(); err != nil {
+				logger.Fatal("failed to read default ceph/rados config file", zap.Error(err))
+			}
 		}
 
 		if err := radosConn.Connect(); err != nil {
@@ -205,14 +128,15 @@ func main() {
 	}
 
 	clients := map[string]*collector.Client{}
-	for _, realm := range realms {
-		rgwAdminAPI, err := CreateRGWAPIConnection(realm)
+	for _, realm := range realmsCfg.Realms {
+		rgwAdminAPI, err := CreateRGWAPIConnection(cfg, realm)
 		if err != nil {
 			logger.Fatal(fmt.Sprintf("failed to create rgw api connection for %s realm", realm.Name), zap.Error(err))
 		}
 
 		clients[realm.Name] = &collector.Client{
 			Name:        realm.Name,
+			Config:      cfg,
 			RGWAdminAPI: rgwAdminAPI,
 			Rados:       radosConn,
 		}
@@ -231,18 +155,19 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, logger, clients, collectors, opts.CtxTimeout, opts.CachingEnabled, opts.CacheDuration)); err != nil {
-		logger.Fatal("couldn't register collector", zap.Error(err))
+	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, logger, clients, collectors,
+		cfg.Timeouts.Collector, cfg.Cache.Enabled, cfg.Cache.Duration)); err != nil {
+		logger.Fatal("couldn't register collectors", zap.Error(err))
 	}
 
-	logger.Info(fmt.Sprintf("listening on %s", opts.ListenHost))
+	logger.Info(fmt.Sprintf("listening on %s", cfg.ListenHost))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<!DOCTYPE html>
 <html>
 	<head><title>Extended Ceph Exporter</title></head>
 	<body>
 		<h1>Extended Ceph Exporter</h1>
-		<p><a href="` + opts.MetricsPath + `">Metrics</a></p>
+		<p><a href="` + cfg.MetricsPath + `">Metrics</a></p>
 	</body>
 </html>`))
 	})
@@ -253,15 +178,15 @@ func main() {
 			ErrorHandling: promhttp.ContinueOnError,
 		})
 
-	http.HandleFunc(opts.MetricsPath, handler.ServeHTTP)
+	http.HandleFunc(cfg.MetricsPath, handler.ServeHTTP)
 
-	http.ListenAndServe(opts.ListenHost, nil)
+	http.ListenAndServe(cfg.ListenHost, nil)
 }
 
-func CreateRGWAPIConnection(realm *config.Realm) (*admin.API, error) {
+func CreateRGWAPIConnection(cfg *config.Config, realm *config.Realm) (*admin.API, error) {
 	httpClient := &http.Client{
 		Transport: http.DefaultTransport.(*http.Transport).Clone(),
-		Timeout:   opts.HttpTimeout,
+		Timeout:   cfg.Timeouts.HTTP,
 	}
 	if realm.SkipTLSVerify {
 		httpClient.Transport.(*http.Transport).TLSClientConfig = &tls.Config{

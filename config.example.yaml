@@ -1,0 +1,30 @@
+# Set log level
+logLevel: "INFO"
+# -- Exporter listen host
+listenHost: ":9138"
+# -- Set the metrics endpoint path
+metricsPath: "/metrics"
+
+# -- Skip TLS cert verification globally
+skipTLSVerify: false
+
+timeouts:
+  # Context timeout for collecting metrics per collector
+  collector: "60s"
+  # HTTP request timeout for collecting metrics for RGW API HTTP client
+  http: "55s"
+
+cache:
+  # -- Enable metrics caching to reduce load
+  enabled: false
+  # -- Cache duration in seconds
+  duration: "20s"
+
+rbd:
+  # -- Ceph Config file to read (if left empty will read default Ceph config file)
+  cephConfig: ""
+  # -- List of namespaces and pools to collect RBD related metrics from
+  pools: [] # empty list = all pools and namespaces
+    # - name: my_pool
+    #   namespaces: [] # empty list = all namespaces
+    #     # - my_namespace # only namespaces listed in the list

@@ -10,6 +10,9 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
+            "env": {
+                "CGO": "1"
+            },
             "args": [
                 "--multi-realm=true",
                 "--multi-realm-config=${workspaceFolder}/realms.yaml",

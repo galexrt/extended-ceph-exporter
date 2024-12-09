@@ -32,5 +32,7 @@ RUN apt-get update && \
     apt-get install -y librbd-dev librados-dev
 
 COPY --from=gobuilder /go/src/github.com/galexrt/extended-ceph-exporter/extended-ceph-exporter /bin/extended-ceph-exporter
+COPY --from=gobuilder /go/src/github.com/galexrt/extended-ceph-exporter/config.example.yaml /config/config.yaml
+COPY --from=gobuilder /go/src/github.com/galexrt/extended-ceph-exporter/realms.example.yaml /realms/realms.yaml
 
 ENTRYPOINT ["/bin/extended-ceph-exporter"]

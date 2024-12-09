@@ -51,7 +51,8 @@ func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- pro
 			return err
 		}
 
-		if userQuota.Enabled == nil {
+		// If quote nil/disabled, skip user
+		if userQuota.Enabled == nil || !*userQuota.Enabled {
 			continue
 		}
 
@@ -61,21 +62,21 @@ func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- pro
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "user_quota_max_size"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "user_quota_max_size"),
 			"RGW User Quota max size",
 			nil, labels)
 		ch <- prometheus.MustNewConstMetric(
 			c.current, prometheus.GaugeValue, float64(*userQuota.MaxSize))
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "user_quota_max_size_kb"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "user_quota_max_size_kb"),
 			"RGW User Quota max size KiB",
 			nil, labels)
 		ch <- prometheus.MustNewConstMetric(
 			c.current, prometheus.GaugeValue, float64(*userQuota.MaxSizeKb))
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "user_quota_max_objects"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "user_quota_max_objects"),
 			"RGW User Quota max objects",
 			nil, labels)
 		ch <- prometheus.MustNewConstMetric(

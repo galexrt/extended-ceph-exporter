@@ -65,8 +65,8 @@ Create the name of the service account to use
 RGW Host value
 */}}
 {{- define "extended-ceph-exporter.rgwHost" -}}
-{{- with .Values.config.rgw.host }}
-{{- $.Values.config.rgw.host }}
+{{- with .Values.postInstallJob.rgw.host }}
+{{- $.Values.postInstallJob.rgw.host }}
 {{- else }}
 {{- $cephobjs := (lookup "ceph.rook.io/v1" "CephObjectStore" "" "").items }}
 {{- with $cephobjs }}

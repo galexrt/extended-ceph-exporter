@@ -39,19 +39,13 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
             - secretRef:
-                name: {{ include "extended-ceph-exporter.fullname" . }}
-          {{- if .Values.config.rgw.existingSecret.name }}
+                name: {{ include "extended-ceph-exporter.fullname" . }}-env
+          {{- with .Values.additionalEnv }}
           env:
-            - name: CEPH_METRICS_RGW_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.config.rgw.existingSecret.name | quote }}
-                  key: {{ .Values.config.rgw.existingSecret.keys.access | quote }}
-            - name: CEPH_METRICS_RGW_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.config.rgw.existingSecret.name | quote }}
-                  key: {{ .Values.config.rgw.existingSecret.keys.secret | quote }}
+          {{- range $k, $v := . }}
+            - name: {{ $k | quote }}
+              value: {{ $v | b64enc }}
+          {{- end }}
           {{- end }}
           ports:
             - name: http-metrics
@@ -69,15 +63,25 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.volumeMounts }}
           volumeMounts:
+          {{- if .Values.config.mountConfig }}
+            - name: config
+              mountPath: /config
+              readOnly: true
+          {{- end }}
+          {{- if .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
         {{- with .Values.sidecars }}
         {{- toYaml .Values.sidecars | nindent 8 }}
         {{- end }}
-      {{- with .Values.volumes }}
       volumes:
+      {{- if .Values.config.mountConfig }}
+        - name: config
+          secret:
+            secretName: {{ include "extended-ceph-exporter.fullname" . }}-config
+      {{- end }}
+      {{- if .Values.volumes }}
       {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.nodeSelector }}

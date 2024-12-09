@@ -61,7 +61,7 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_size"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_size"),
 			"RGW Bucket Size",
 			nil, labels)
 		if bucketInfo.Usage.RgwMain.Size == nil {
@@ -73,7 +73,7 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_size_kb"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_size_kb"),
 			"RGW Bucket Size actual",
 			nil, labels)
 		if bucketInfo.Usage.RgwMain.SizeKb == nil {
@@ -85,7 +85,7 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_size_kb_actual"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_size_kb_actual"),
 			"RGW Bucket Size KiB actual",
 			nil, labels)
 		if bucketInfo.Usage.RgwMain.SizeKbActual == nil {
@@ -97,7 +97,7 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_size_kb_utilized"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_size_kb_utilized"),
 			"RGW Bucket Size KiB utilized",
 			nil, labels)
 		if bucketInfo.Usage.RgwMain.SizeKbUtilized == nil {
@@ -109,7 +109,7 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_num_objects"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_num_objects"),
 			"RGW Bucket Num Objects",
 			nil, labels)
 		if bucketInfo.Usage.RgwMain.NumObjects == nil {
@@ -125,14 +125,14 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		}
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_quota_max_size_kb"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_quota_max_size_kb"),
 			"RGW Bucket Quota Max Size KiB",
 			nil, labels)
 		ch <- prometheus.MustNewConstMetric(
 			c.current, prometheus.GaugeValue, float64(*bucketInfo.BucketQuota.MaxSizeKb))
 
 		c.current = prometheus.NewDesc(
-			prometheus.BuildFQName(Namespace, "rgw", "bucket_quota_max_objects"),
+			prometheus.BuildFQName(MetricsNamespace, "rgw", "bucket_quota_max_objects"),
 			"RGW Bucket Quota Max Objects",
 			nil, labels)
 		ch <- prometheus.MustNewConstMetric(

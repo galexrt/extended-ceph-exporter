@@ -21,13 +21,16 @@ import (
 
 	"github.com/ceph/go-ceph/rados"
 	rgwadmin "github.com/ceph/go-ceph/rgw/admin"
+	"github.com/galexrt/extended-ceph-exporter/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const Namespace = "ceph"
+const MetricsNamespace = "ceph"
 
 type Client struct {
 	Name string
+
+	Config *config.Config
 
 	RGWAdminAPI *rgwadmin.API
 	Rados       *rados.Conn

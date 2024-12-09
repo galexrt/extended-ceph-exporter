@@ -19,8 +19,11 @@ package collector
 import (
 	"context"
 	"fmt"
+	"slices"
 
+	"github.com/ceph/go-ceph/rados"
 	"github.com/ceph/go-ceph/rbd"
+	"github.com/galexrt/extended-ceph-exporter/pkg/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/multierr"
 )
@@ -43,9 +46,17 @@ func (c *RBDVolumes) Update(ctx context.Context, client *Client, ch chan<- prome
 		return err
 	}
 
+	if len(client.Config.RBD.Pools) > 0 {
+		// Remove any pools not in our list
+		pools = slices.DeleteFunc(pools, func(pool string) bool {
+			return !slices.ContainsFunc(client.Config.RBD.Pools, func(rp *config.RBDPool) bool {
+				return rp.Name == pool
+			})
+		})
+	}
+
 	var errs error
 	// List pools and iterate over each
-	// TODO add flag to provide list of pools to check
 	for _, pool := range pools {
 		ioctx, err := client.Rados.OpenIOContext(pool)
 		if err != nil {
@@ -53,39 +64,58 @@ func (c *RBDVolumes) Update(ctx context.Context, client *Client, ch chan<- prome
 			continue
 		}
 
-		images, err := rbd.GetImageNames(ioctx)
-		if err != nil {
-			errs = multierr.Append(errs, fmt.Errorf("failed to get image names from %s pool. %w", pool, err))
-			continue
+		namespaces := []string{
+			rados.AllNamespaces,
 		}
 
-		for _, image := range images {
-			info := rbd.GetImage(ioctx, image)
+		if idx := slices.IndexFunc(client.Config.RBD.Pools, func(rp *config.RBDPool) bool {
+			return rp.Name == pool
+		}); idx > -1 {
+			if len(client.Config.RBD.Pools[idx].Namespaces) > 0 {
+				namespaces = client.Config.RBD.Pools[idx].Namespaces
+			}
+		}
 
-			id, err := info.GetId()
+		for _, namespace := range namespaces {
+			ioctx.SetNamespace(namespace)
+
+			images, err := rbd.GetImageNames(ioctx)
 			if err != nil {
-				errs = multierr.Append(errs, fmt.Errorf("failed to get image id for %s/%s. %w", pool, image, err))
+				errs = multierr.Append(errs, fmt.Errorf("failed to get image names from %s pool (namespace: %s). %w", pool, namespace, err))
 				continue
 			}
 
-			labels := map[string]string{
-				"pool": pool,
-				"id":   id,
-				"name": image,
-			}
+			for _, image := range images {
+				info := rbd.GetImage(ioctx, image)
 
-			size, err := info.GetSize()
-			if err != nil {
-				errs = multierr.Append(errs, fmt.Errorf("failed to get image size for %s/%s. %w", pool, image, err))
-				continue
-			}
+				id, err := info.GetId()
+				if err != nil {
+					errs = multierr.Append(errs, fmt.Errorf("failed to get image id for %s/%s (namespace: %s). %w", pool, image, namespace, err))
+					continue
+				}
 
-			c.current = prometheus.NewDesc(
-				prometheus.BuildFQName(Namespace, "rbd", "volume_size"),
-				"RBD Volume provisioned size",
-				nil, labels)
-			ch <- prometheus.MustNewConstMetric(
-				c.current, prometheus.GaugeValue, float64(size))
+				labels := map[string]string{
+					"pool": pool,
+					"id":   id,
+					"name": image,
+				}
+				if namespace != rados.AllNamespaces {
+					labels["namespace"] = namespace
+				}
+
+				size, err := info.GetSize()
+				if err != nil {
+					errs = multierr.Append(errs, fmt.Errorf("failed to get image size for %s/%s (namespace: %s). %w", pool, image, namespace, err))
+					continue
+				}
+
+				c.current = prometheus.NewDesc(
+					prometheus.BuildFQName(MetricsNamespace, "rbd", "volume_size"),
+					"RBD Volume provisioned size",
+					nil, labels)
+				ch <- prometheus.MustNewConstMetric(
+					c.current, prometheus.GaugeValue, float64(size))
+			}
 		}
 	}
 

@@ -112,9 +112,80 @@ prometheusRule:
   # -- (prometheusrules.monitoring.coreos.com)
   rules: []
 
-# Config for the exporter
-# pass during helm install or set prior to update this can also be done during runtime by using `--set``
 config:
+  # -- Disable to mount your own `config.yaml` at `/config`. If disabled a volume and volumeMount are required!
+  mountConfig: true
+
+  # -- `config.yaml` for the exporter, make sure to checkout the `config.example.yaml` for more information
+  config:
+    # Set log level
+    logLevel: "INFO"
+    # -- Exporter listen host
+    listenHost: ":9138"
+    # -- Set the metrics endpoint path
+    metricsPath: "/metrics"
+
+    # -- Skip TLS cert verification globally
+    skipTLSVerify: false
+
+    timeouts:
+      # Context timeout for collecting metrics per collector
+      collector: "60s"
+      # HTTP request timeout for collecting metrics for RGW API HTTP client
+      http: "55s"
+
+    cache:
+      # -- Enable metrics caching to reduce load
+      enabled: false
+      # -- Cache duration in seconds
+      duration: "20s"
+
+    rbd:
+      # -- Ceph Config file to read (if left empty will read default Ceph config file)
+      cephConfig: ""
+      # -- List of namespaces and pools to collect RBD related metrics from
+      pools: [] # empty list = all pools and namespaces
+        # - name: my_pool
+        #   namespaces: [] # empty list = all namespaces
+        #     # - my_namespace # only namespaces listed in the list
+
+  # -- Disable to mount your own `realms.yaml` at `/realms`. If disabled a volume and volumeMount are required!
+  mountRealms: true
+  # -- `realms.yaml` exporter RGW Realms config. If left empty will attempt to detect **one** existing Rook CephObjectStore as a target.
+  rgwRealms:
+    realms:
+        # -- RGW Realm name (used in metrics as a label)
+      - name: default
+        # -- The Ceph RGW endpoint as a URL, e.g. "https://your-ceph-rgw-endpoint-here:8443". Env vars can will be substitued.
+        host: "$RGW_HOST" # By default only available when the `postInstallJob` below is enabled.
+        # -- RGW S3 access key
+        accessKey: "$RGW_ACCESS_KEY" # By default only available when the `postInstallJob` below is enabled.
+        # -- RGW S3 secret key
+        secretKey: "$RGW_SECRET_KEY" # By default only available when the `postInstallJob` below is enabled.
+        # -- Skip tls verify for this RGW endpoint
+        skipTLSVerify: false
+      ## Multiple realms can be specified
+      #- name: example2
+      #  host: "https://your-rgw-host.example.com:8443"
+      #  accessKey: "YOUR_ACCESS_KEY"
+      #  secretKey: "YOUR_SECRET_KEY"
+      #  skipTLSVerify: false
+
+# -- Will be put in a Secret and used as env vars
+additionalEnv: {}
+
+postInstallJob:
+  # -- If enabled, will create a rgw admin user `extended-ceph-exporter` either on
+  # Rook/Ceph cluster pre upgrade (when having extended-ceph-exporter as a helm
+  # dependency) or on post install of extended-ceph-exporter(needs existing
+  # Rook/Ceph cluster). This user will be used for extended ceph metrics.
+  enabled: true
+  # @ignore
+  image:
+    repository: quay.io/ceph/ceph
+    pullPolicy: IfNotPresent
+    tag: v17.2.8
+  # -- RGW Realms config and options
   rgw:
     # -- The Ceph RGW endpoint as a URL, e.g. "https://your-ceph-rgw-endpoint-here:8443"
     # @default -- First detected RGW endpoint
@@ -134,27 +205,6 @@ config:
     # -- RGW admin secret key
     # @default -- Randomly generated
     secretKey: null
-    # -- RGW multi mode config (previously located directly under the `.config` section and not `.config.rgw`)
-    multiMode:
-      # -- If RGW realm multi mode should be enabled, you must provide a volume mount with a config file named `reals.yaml`. Checkout the readme section for more information https://github.com/galexrt/extended-ceph-exporter/tree/multiple_rgw_realms?tab=readme-ov-file#multi-realm-mode
-      enabled: false
-      # -- RGW realm multi mode config file path inside the exporter container
-      realms: "/realms/realms.yaml"
-
-# -- Will be put in a Secret and used as env vars
-additionalEnv: {}
-
-postInstallJob:
-  # -- If enabled,  will create a rgw admin user `extended-ceph-exporter` either on
-  # Rook/Ceph cluster pre upgrade(when having extended-ceph-exporter as a helm
-  # dependency) or on post install of extended-ceph-exporter(needs existing
-  # Rook/Ceph cluster). This user will be used for extended ceph metrics.
-  enabled: true
-  # @ignore
-  image:
-    repository: quay.io/ceph/ceph
-    pullPolicy: IfNotPresent
-    tag: v17.2.8
 
 # -- Extra volumes to add to the deployment
 volumes: []
@@ -193,4 +243,3 @@ extraObjects: []
 #          host: your-rgw-host.example.com
 #          accessKey: YOUR_ACCESS_KEY
 #          secretKey: YOUR_SECRET_KEY
-

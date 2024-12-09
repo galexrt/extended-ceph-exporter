@@ -97,34 +97,21 @@ below list all existing collectors and the required Ceph components.
 | :------------ | :---------------------------------------------------------------------------: | -------------- |
 | `rbd_volumes` | Exposes RBD volumes size (volume pool, id, and name are available as labels). | RBD            |
 
-## RGW: Multi-Realm Mode
+## RGW: Multiple Realms
 
-You can use the exporter to scrape metrics from multiple RGW realms by enabling the "multi realm mode" and providing a "multi realm config" file.
+You can use the exporter to scrape metrics from multiple RGW realms by providing multiple RGWs in the realm config file.
 
-An example multi realm config file can be found here [`realms.example.yaml`](realms.example.yaml).
-
-Please note that if the multi realm mode is enabled, the RGW flags (e.g., `--rgw-host`, `--rgw-access-key`, `--rgw-secret-key`) are ignored as the `realms.yaml` (flag `--multi-realm-config`) takes over.
+An example realm config file can be found here [`realms.example.yaml`](realms.example.yaml).
 
 ## Flags
 
 ```console
 $ extended-ceph-exporter --help
 Usage of exporter:
-      --cache-duration duration      Cache duration in seconds (default 20s)
-      --cache-enabled                Enable metrics caching to reduce load
-      --collectors-enabled strings   List of enabled collectors (please refer to the readme for a list of all available collectors) (default [rgw_user_quota,rgw_buckets])
-      --context-timeout duration     Context timeout for collecting metrics per collector (default 1m0s)
-      --http-timeout duration        HTTP request timeout for collecting metrics for RGW API HTTP client (default 55s)
-      --listen-host string           Exporter listen host (default ":9138")
-      --log-level string             Set log level (default "INFO")
-      --metrics-path string          Set the metrics endpoint path (default "/metrics")
-      --multi-realm                  Enable multi realm mode (requires realms.yaml config, see --multi-realm-config flag)
-      --multi-realm-config string    Path to your realms.yaml config file (default "realms.yaml")
-      --rgw-access-key string        RGW Access Key
-      --rgw-host string              RGW Host URL
-      --rgw-secret-key string        RGW Secret Key
-      --skip-tls-verify              Skip TLS cert verification
-      --version                      Show version info and exit
+      --collectors-enabled strings           List of enabled collectors (please refer to the readme for a list of all available collectors) (default [rgw_user_quota,rgw_buckets])
+      --config config.yaml                   Config file path (default name config.yaml , current and `/config` directory).
+      --realms-config --multi-realm-config   Path to your realms.yaml config file (old flag name: --multi-realm-config) (default "realms.yaml")
+      --version                              Show version info and exit
 pflag: help requested
 exit status 2
 ```

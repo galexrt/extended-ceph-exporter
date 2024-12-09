@@ -35,5 +35,7 @@ _testmain.go
 
 __debug_bin*
 
+/config.yaml
+
 # Nix
 .direnv/

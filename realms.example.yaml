@@ -1,11 +1,11 @@
-realms:
-  - name: example1
-    host: "http://your-rgw-host.example.com:8080"
-    accessKey: "YOUR_ACCESS_KEY"
-    secretKey: "YOUR_SECRET_KEY"
-    skipTLSVerify: false
-  - name: example2
-    host: "https://your-rgw-host.example.com:8443"
-    accessKey: "YOUR_ACCESS_KEY"
-    secretKey: "YOUR_SECRET_KEY"
-    skipTLSVerify: false
+realms: []
+  #- name: example1
+  #  host: "http://your-rgw-host.example.com:8080"
+  #  accessKey: "YOUR_ACCESS_KEY"
+  #  secretKey: "YOUR_SECRET_KEY"
+  #  skipTLSVerify: false
+  #- name: example2
+  #  host: "https://your-rgw-host.example.com:8443"
+  #  accessKey: "YOUR_ACCESS_KEY"
+  #  secretKey: "YOUR_SECRET_KEY"
+  #  skipTLSVerify: false

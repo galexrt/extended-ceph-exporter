@@ -29,13 +29,13 @@ import (
 
 var (
 	scrapeDurationDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(collector.Namespace, "scrape", "collector_duration_seconds"),
+		prometheus.BuildFQName(collector.MetricsNamespace, "scrape", "collector_duration_seconds"),
 		"Duration of a collector scrape.",
 		[]string{"collector", "realm"},
 		nil,
 	)
 	scrapeSuccessDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(collector.Namespace, "scrape", "collector_success"),
+		prometheus.BuildFQName(collector.MetricsNamespace, "scrape", "collector_success"),
 		"Whether a collector succeeded.",
 		[]string{"collector", "realm"},
 		nil,
