@@ -7,7 +7,7 @@ WORKDIR /go/src/github.com/galexrt/extended-ceph-exporter/
 COPY . ./
 RUN apt-get update && \
     apt-get install -y curl git make golang \
-        librbd-dev librados-dev && \
+        libcephfs-dev librbd-dev librados-dev gcc pkg-config && \
     git config --global --add safe.directory /go/src/github.com/galexrt/extended-ceph-exporter
 RUN make build
 
@@ -32,7 +32,7 @@ VOLUME /config
 VOLUME /realms
 
 RUN apt-get update && \
-    apt-get install -y librbd-dev librados-dev
+    apt-get install -y libcephfs-dev librbd-dev librados-dev
 
 COPY --from=gobuilder /go/src/github.com/galexrt/extended-ceph-exporter/extended-ceph-exporter /bin/extended-ceph-exporter
 # Copy default configs
