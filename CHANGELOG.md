@@ -1,4 +1,4 @@
-## 1.7.1 /2024-12-11
+## 1.7.1 / 2024-12-11
 
 * [FIX] use RBD namespace list to get namespaces to iterate for rbd volumes collector.
 
