@@ -1,3 +1,7 @@
+## 1.7.1 /2024-12-11
+
+* [FIX] use RBD namespace list to get namespaces to iterate for rbd volumes collector.
+
 ## 1.7.0 / 2024-12-09
 
 * [FEATURE] **BREAKING CHANGES** Most flags have been replaced by the `config.yaml` (an example can be found [here `config.example.yaml`](/config.example.yaml), Helm chart values have been updated as well [`.config` section](https://github.com/galexrt/extended-ceph-exporter/blob/main/charts/extended-ceph-exporter/values.yaml#L115)).
