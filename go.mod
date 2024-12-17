@@ -3,7 +3,7 @@ module github.com/galexrt/extended-ceph-exporter
 go 1.23.1
 
 require (
-	github.com/ceph/go-ceph v0.30.0
+	github.com/ceph/go-ceph v0.31.0
 	github.com/creasty/defaults v1.8.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.20.5
