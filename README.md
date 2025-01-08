@@ -8,9 +8,9 @@ Due to the closure of Koor Technologies, Inc. this repository has been made to c
 
 ## Requirements
 
-* Needs a Ceph cluster up and running.
+* Needs a Ceph cluster up and running (Rook Ceph clusters with CephObjectStores work as well, checkout the [Rook section](#rook)).
 
-* Needs an admin user
+* Needs a RGW user with admin or the following "caps": `buckets=read;users=read;usage=read;metadata=read;zone=read`
 
     ```
     radosgw-admin user create --uid extended-ceph-exporter --display-name "extended-ceph-exporter admin user" --caps "buckets=read;users=read;usage=read;metadata=read;zone=read"
@@ -22,7 +22,7 @@ Due to the closure of Koor Technologies, Inc. this repository has been made to c
 
 ## Rook
 
-If using Rook to manage RGW, the admin user may also be created using a `CephOjectStoreUser` resource:
+If using Rook to manage RGWs, the admin user may also be created using a `CephOjectStoreUser` resource:
 
 ```yaml
 apiVersion: ceph.rook.io/v1
@@ -52,7 +52,8 @@ Applying this will create an user with all permissions needed.
   cd extended-ceph-exporter
   ```
 
-* Create a copy of the `.env.example` file and name it `.env`. Configure your RGW credentials and endpoint in the `.env` file.
+* Create a copy of the `config.example.yaml` and `realms.example.yaml` files, and rename the files to remove the `.example` from the names.
+    * Make sure to configure your RGW admin user credentials and endpoint in the `realms.yaml` file.
 
 * Configure Prometheus to collect metrics from the exporter from `:9138/metrics` endpoint using a static configuration, here's a sample scrape job from the `prometheus.yml`:
 
@@ -67,17 +68,21 @@ Applying this will create an user with all permissions needed.
       scrape_interval: 30s
 
       static_configs:
-        # Please change the ip address `127.0.0.1` to target the exporter is running
+        # Please change the ip address `127.0.0.1` to target the server the exporter is running on
         - targets: ['127.0.0.1:9138']
   ```
 
-* To run the exporter locally, run `go run .`
+* To run the exporter locally you can use one of the methods:
+    * Using `go` command, run `go run .`
+    * Download a [release binary](releases).
+    * Use the container image avaialble from [ghcr.io/galexrt/extended-ceph-exporter](https://github.com/galexrt/extended-ceph-exporter/pkgs/container/extended-ceph-exporter).
+    * [Helm chart](charts/extended-ceph-exporter/README.md) for Kubernetes/OpenShift deployment.
 
-* Should you have Grafana running for metrics visulization, check out the [Grafana dashboards](grafana/).
+* Should you have Grafana running for metrics visulization, check out the available [Grafana dashboards](grafana/).
 
 ### Helm
 
-To install the exporter to Kubernetes using Helm, check out the [extended-ceph-exporter Helm Chart](charts/extended-ceph-exporter/).
+To install the exporter to Kubernetes using Helm, please check out the [extended-ceph-exporter Helm Chart README.md file](charts/extended-ceph-exporter/README.md).
 
 ## Collectors
 
@@ -121,7 +126,7 @@ exit status 2
 ### Requirements
 
 * Golang 1.23.x (or higher should work)
-* Ceph development files (`librados`, `librdb`)
+* Ceph development files/libraries (`librados`, `librdb`)
     * If you are using `nix`, the `flake.nix` should be satisfy these lib dependencies.
 * `helm`
 
@@ -134,5 +139,5 @@ Additionally `make helm-doc` must be run afterwards and the changes to the Helm 
 
 A VSCode debug config is available to run and debug the project.
 
-To make the exporter talk with a Ceph RGW S3 endpoint, create a copy of the `.env.example` file and name it `.env`.
+To make the exporter talk with a Ceph RGW S3 endpoint, create a copy of the `config.example.yaml` and `realms.example.yaml` files, and rename the files to remove the `.example` from the names.
 Be sure ot add your Ceph RGW S3 endpoint and credentials in it.
