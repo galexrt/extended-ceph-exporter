@@ -2,7 +2,7 @@
 
 A Helm chart for deploying the extended-ceph-exporter to Kubernetes
 
-![Version: 1.6.8](https://img.shields.io/badge/Version-1.6.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.1](https://img.shields.io/badge/AppVersion-v1.7.1-informational?style=flat-square)
+![Version: 1.6.9](https://img.shields.io/badge/Version-1.6.9-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.1](https://img.shields.io/badge/AppVersion-v1.7.1-informational?style=flat-square)
 
 ## Get Repo Info
 
@@ -54,7 +54,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 |-----|------|---------|-------------|
 | additionalEnv | object | `{}` | Will be put in a Secret and used as env vars |
 | affinity | object | `{}` | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) |
-| autoscaling | object | `{"enabled":false,"maxReplicas":100,"minReplicas":1,"targetCPUUtilizationPercentage":80}` | Autoscaling configuration |
+| autoscaling | object | `{"enabled":false,"maxReplicas":100,"minReplicas":1,"targetCPUUtilizationPercentage":80}` | [Autoscaling configuration](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/) |
 | config.config | object | `{"cache":{"duration":"20s","enabled":false},"listenHost":":9138","logLevel":"INFO","metricsPath":"/metrics","rbd":{"cephConfig":"","pools":[]},"skipTLSVerify":false,"timeouts":{"collector":"60s","http":"55s"}}` | `config.yaml` for the exporter, make sure to checkout the `config.example.yaml` for more information |
 | config.config.cache.duration | string | `"20s"` | Cache duration in seconds |
 | config.config.cache.enabled | bool | `false` | Enable metrics caching to reduce load |
@@ -65,7 +65,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | config.config.skipTLSVerify | bool | `false` | Skip TLS cert verification globally |
 | config.mountConfig | bool | `true` | Disable to mount your own `config.yaml` at `/config`. If disabled a volume and volumeMount are required! |
 | config.mountRealms | bool | `true` | Disable to mount your own `realms.yaml` at `/realms`. If disabled a volume and volumeMount are required! |
-| config.rgwRealms | object | `{"realms":[{"accessKey":"$RGW_ACCESS_KEY","host":"$RGW_HOST","name":"default","secretKey":"$RGW_SECRET_KEY","skipTLSVerify":false}]}` | `realms.yaml` exporter RGW Realms config. If left empty will attempt to detect **one** existing Rook CephObjectStore as a target. |
+| config.rgwRealms | object | `{"realms":[{"accessKey":"$RGW_ACCESS_KEY","host":"$RGW_HOST","name":"default","secretKey":"$RGW_SECRET_KEY","skipTLSVerify":false}]}` | `realms.yaml` exporter RGW Realms config. If left empty will attempt to detect **one** existing Rook CephObjectStore as a target. A list of RGW realms to monitor. |
 | config.rgwRealms.realms[0] | object | `{"accessKey":"$RGW_ACCESS_KEY","host":"$RGW_HOST","name":"default","secretKey":"$RGW_SECRET_KEY","skipTLSVerify":false}` | RGW Realm name (used in metrics as a label) |
 | config.rgwRealms.realms[0].accessKey | string | `"$RGW_ACCESS_KEY"` | RGW S3 access key |
 | config.rgwRealms.realms[0].host | string | `"$RGW_HOST"` | The Ceph RGW endpoint as a URL, e.g. "https://your-ceph-rgw-endpoint-here:8443". Env vars can will be substitued. |
@@ -92,7 +92,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | prometheusRule.enabled | bool | `false` | Specifies whether a prometheus-operator PrometheusRule should be created |
 | prometheusRule.rules | prometheusrules.monitoring.coreos.com | `[]` |  |
 | replicaCount | int | `1` | Number of replicas of the exporter |
-| resources | object | `{"limits":{"cpu":"125m","memory":"150Mi"},"requests":{"cpu":"25m","memory":"150Mi"}}` | These are sane defaults for "small" object storages |
+| resources | object | `{"limits":{"cpu":"125m","memory":"150Mi"},"requests":{"cpu":"25m","memory":"150Mi"}}` | These are sane defaults for Ceph clusters with "small" RGW instances |
 | securityContext | object | `{}` | [Security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) |
 | service.port | int | `9138` |  |
 | service.type | string | `"ClusterIP"` |  |
