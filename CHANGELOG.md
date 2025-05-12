@@ -1,3 +1,7 @@
+## 1.7.2 / 2025-05-12
+
+* [FEATURE] collect rgw buckets and user quota errors instead of failing
+
 ## 1.7.1 / 2024-12-11
 
 * [FIX] use RBD namespace list to get namespaces to iterate for rbd volumes collector.
