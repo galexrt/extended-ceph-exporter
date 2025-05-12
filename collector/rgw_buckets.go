@@ -18,9 +18,11 @@ package collector
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/multierr"
 )
 
 type RGWBuckets struct {
@@ -41,12 +43,14 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 		return err
 	}
 
+	var errs error
 	for _, bucketName := range buckets {
 		bucketInfo, err := client.RGWAdminAPI.GetBucketInfo(ctx, admin.Bucket{
 			Bucket: bucketName,
 		})
 		if err != nil {
-			return err
+			errs = multierr.Append(errs, fmt.Errorf("failed to get bucket %q info. %w", bucketName, err))
+			continue
 		}
 
 		labels := map[string]string{
@@ -140,5 +144,5 @@ func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prome
 
 	}
 
-	return nil
+	return errs
 }

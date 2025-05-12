@@ -18,9 +18,11 @@ package collector
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ceph/go-ceph/rgw/admin"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/multierr"
 )
 
 type RGWUserQuota struct {
@@ -42,13 +44,15 @@ func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- pro
 		return err
 	}
 
+	var errs error
 	// Iterate over users to get quota
 	for _, user := range *users {
 		userQuota, err := client.RGWAdminAPI.GetUserQuota(ctx, admin.QuotaSpec{
 			UID: user,
 		})
 		if err != nil {
-			return err
+			errs = multierr.Append(errs, fmt.Errorf("failed to get user %q quota. %w", user, err))
+			continue
 		}
 
 		// If quote nil/disabled, skip user
@@ -83,5 +87,5 @@ func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- pro
 			c.current, prometheus.GaugeValue, float64(*userQuota.MaxObjects))
 	}
 
-	return nil
+	return errs
 }
