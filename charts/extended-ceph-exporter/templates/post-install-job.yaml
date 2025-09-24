@@ -76,6 +76,9 @@ spec:
                 secretKeyRef:
                   name: rook-ceph-mon
                   key: ceph-secret
+          {{- with .Values.postInstallJob.additionalEnv }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - mountPath: /etc/ceph
               name: ceph-config

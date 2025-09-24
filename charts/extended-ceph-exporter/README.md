@@ -2,7 +2,7 @@
 
 A Helm chart for deploying the extended-ceph-exporter to Kubernetes
 
-![Version: 1.6.10](https://img.shields.io/badge/Version-1.6.10-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.2](https://img.shields.io/badge/AppVersion-v1.7.2-informational?style=flat-square)
+![Version: 1.7.0](https://img.shields.io/badge/Version-1.7.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.2](https://img.shields.io/badge/AppVersion-v1.7.2-informational?style=flat-square)
 
 ## Get Repo Info
 
@@ -52,7 +52,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| additionalEnv | object | `{}` | Will be put in a Secret and used as env vars |
+| additionalEnv | list | `[]` | Will be added directly to the Deployment |
 | affinity | object | `{}` | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) |
 | autoscaling | object | `{"enabled":false,"maxReplicas":100,"minReplicas":1,"targetCPUUtilizationPercentage":80}` | [Autoscaling configuration](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/) |
 | config.config | object | `{"cache":{"duration":"20s","enabled":false},"listenHost":":9138","logLevel":"INFO","metricsPath":"/metrics","rbd":{"cephConfig":"","pools":[]},"skipTLSVerify":false,"timeouts":{"collector":"60s","http":"55s"}}` | `config.yaml` for the exporter, make sure to checkout the `config.example.yaml` for more information |
@@ -78,6 +78,7 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | nodeSelector | object | `{}` | [Create a pod that gets scheduled to your chosen node](https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/#create-a-pod-that-gets-scheduled-to-your-chosen-node) |
 | podAnnotations | object | `{}` | Annotations to add to the pod |
 | podSecurityContext | object | `{}` | [Pod security context](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) |
+| postInstallJob.additionalEnv | list | `[]` | Will be added to the post install job |
 | postInstallJob.enabled | bool | `true` | If enabled, will create a rgw admin user `extended-ceph-exporter` either on Rook/Ceph cluster pre upgrade (when having extended-ceph-exporter as a helm dependency) or on post install of extended-ceph-exporter(needs existing Rook/Ceph cluster). This user will be used for extended ceph metrics. |
 | postInstallJob.rgw | object | `{"accessKey":null,"existingSecret":{"keys":{"access":"access","secret":"secret"},"name":""},"host":"","secretKey":null}` | RGW Realms config and options |
 | postInstallJob.rgw.accessKey | string | Randomly generated | RGW admin access key |

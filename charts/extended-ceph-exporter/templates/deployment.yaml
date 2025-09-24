@@ -42,10 +42,7 @@ spec:
                 name: {{ include "extended-ceph-exporter.fullname" . }}-env
           {{- with .Values.additionalEnv }}
           env:
-          {{- range $k, $v := . }}
-            - name: {{ $k | quote }}
-              value: {{ $v | b64enc }}
-          {{- end }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
             - name: http-metrics

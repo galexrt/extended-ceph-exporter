@@ -171,8 +171,21 @@ config:
       #  secretKey: "YOUR_SECRET_KEY"
       #  skipTLSVerify: false
 
-# -- Will be put in a Secret and used as env vars
-additionalEnv: {}
+# -- Will be added directly to the Deployment
+additionalEnv: []
+# If you have a secret with RGW credentials you can use the following example
+# (the rgwRealms config must use `$RGW_ACCESS_KEY` and `$RGW_SECRET_KEY` for the respective realm):
+#
+#- name: RGW_ACCESS_KEY
+#  valueFrom:
+#    secretKeyRef:
+#      name: extended-ceph-exporter-creds
+#      key: accessKey
+#- name: RGW_SECRET_KEY
+#  valueFrom:
+#    secretKeyRef:
+#      name: extended-ceph-exporter-creds
+#      key: secretKey
 
 postInstallJob:
   # -- If enabled, will create a rgw admin user `extended-ceph-exporter` either on
@@ -205,6 +218,8 @@ postInstallJob:
     # -- RGW admin secret key
     # @default -- Randomly generated
     secretKey: null
+  # -- Will be added to the post install job
+  additionalEnv: []
 
 # -- Extra volumes to add to the deployment
 volumes: []
