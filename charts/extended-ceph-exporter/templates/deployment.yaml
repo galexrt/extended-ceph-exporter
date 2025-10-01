@@ -68,6 +68,11 @@ spec:
               mountPath: /config
               readOnly: true
           {{- end }}
+          {{- if .Values.config.mountRealms }}
+            - name: realms
+              mountPath: /realms
+              readOnly: true
+          {{- end }}
           {{- if .Values.volumeMounts }}
             {{- toYaml .Values.volumeMounts | nindent 12 }}
           {{- end }}
@@ -79,6 +84,11 @@ spec:
         - name: config
           secret:
             secretName: {{ include "extended-ceph-exporter.fullname" . }}-config
+      {{- end }}
+      {{- if .Values.config.mountRealms }}
+        - name: realms
+          secret:
+            secretName: {{ include "extended-ceph-exporter.fullname" . }}-realms
       {{- end }}
       {{- if .Values.volumes }}
         {{- toYaml .Values.volumes | nindent 8 }}
