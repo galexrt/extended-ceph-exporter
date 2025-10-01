@@ -1,3 +1,7 @@
+## 1.7.3 / 2025-10-01
+
+* [FIX] Install `ca-certificates` package in container image
+
 ## 1.7.2 / 2025-05-12
 
 * [FEATURE] collect rgw buckets and user quota errors instead of failing

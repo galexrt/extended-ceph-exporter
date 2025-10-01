@@ -32,7 +32,8 @@ VOLUME /config
 VOLUME /realms
 
 RUN apt-get update && \
-    apt-get install -y libcephfs-dev librbd-dev librados-dev
+    apt-get install -y libcephfs-dev librbd-dev librados-dev \
+        ca-certificates
 
 COPY --from=gobuilder /go/src/github.com/galexrt/extended-ceph-exporter/extended-ceph-exporter /bin/extended-ceph-exporter
 # Copy default configs
