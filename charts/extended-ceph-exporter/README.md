@@ -2,7 +2,7 @@
 
 A Helm chart for deploying the extended-ceph-exporter to Kubernetes
 
-![Version: 1.8.0](https://img.shields.io/badge/Version-1.8.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.3](https://img.shields.io/badge/AppVersion-v1.7.3-informational?style=flat-square)
+![Version: 1.9.0](https://img.shields.io/badge/Version-1.9.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.7.3](https://img.shields.io/badge/AppVersion-v1.7.3-informational?style=flat-square)
 
 ## Get Repo Info
 
@@ -55,14 +55,17 @@ _See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command doc
 | additionalEnv | list | `[]` | Will be added directly to the Deployment |
 | affinity | object | `{}` | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) |
 | autoscaling | object | `{"enabled":false,"maxReplicas":100,"minReplicas":1,"targetCPUUtilizationPercentage":80}` | [Autoscaling configuration](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/) |
-| config.config | object | `{"cache":{"duration":"20s","enabled":false},"listenHost":":9138","logLevel":"INFO","metricsPath":"/metrics","rbd":{"cephConfig":"","pools":[]},"skipTLSVerify":false,"timeouts":{"collector":"60s","http":"55s"}}` | `config.yaml` for the exporter, make sure to checkout the `config.example.yaml` for more information |
+| config.config | object | `{"cache":{"duration":"20s","enabled":false},"collectors":["rgw_buckets","rgw_user_quota"],"listenHost":":9138","logLevel":"INFO","metricsPath":"/metrics","rbd":{"cephConfig":"","pools":[]},"skipTLSVerify":false,"timeouts":{"collector":"60s","http":"55s"}}` | `config.yaml` for the exporter, make sure to checkout the `config.example.yaml` for more information |
 | config.config.cache.duration | string | `"20s"` | Cache duration in seconds |
 | config.config.cache.enabled | bool | `false` | Enable metrics caching to reduce load |
+| config.config.collectors | list | `["rgw_buckets","rgw_user_quota"]` | List of enabled collectors |
 | config.config.listenHost | string | `":9138"` | Exporter listen host |
 | config.config.metricsPath | string | `"/metrics"` | Set the metrics endpoint path |
 | config.config.rbd.cephConfig | string | `""` | Ceph Config file to read (if left empty will read default Ceph config file) |
 | config.config.rbd.pools | list | `[]` | List of namespaces and pools to collect RBD related metrics from |
 | config.config.skipTLSVerify | bool | `false` | Skip TLS cert verification globally |
+| config.config.timeouts.collector | string | `"60s"` | Context timeout for collecting metrics per collector |
+| config.config.timeouts.http | string | `"55s"` | HTTP request timeout for collecting metrics for RGW API HTTP client |
 | config.mountConfig | bool | `true` | Disable to mount your own `config.yaml` at `/config`. If disabled a volume and volumeMount are required! |
 | config.mountRealms | bool | `true` | Disable to mount your own `realms.yaml` at `/realms`. If disabled a volume and volumeMount are required! |
 | config.rgwRealms | object | `{"realms":[{"accessKey":"$RGW_ACCESS_KEY","host":"$RGW_HOST","name":"default","secretKey":"$RGW_SECRET_KEY","skipTLSVerify":false}]}` | `realms.yaml` exporter RGW Realms config. If left empty will attempt to detect **one** existing Rook CephObjectStore as a target. A list of RGW realms to monitor. |
