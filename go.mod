@@ -3,9 +3,7 @@ module github.com/galexrt/extended-ceph-exporter
 go 1.24.8
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.39.2
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.16
-	github.com/ceph/go-ceph v0.33.0
+	github.com/ceph/go-ceph v0.36.0
 	github.com/creasty/defaults v1.8.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.23.2
@@ -17,6 +15,8 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.39.2 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.16 // indirect
 	github.com/aws/smithy-go v1.23.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
