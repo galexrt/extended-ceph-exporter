@@ -1,3 +1,7 @@
+## 1.8.0 / 2025-11-18
+
+* [FEATURE] Add enabled collectors list to config and Helm chart
+
 ## 1.7.3 / 2025-10-01
 
 * [FIX] Install `ca-certificates` package in container image
