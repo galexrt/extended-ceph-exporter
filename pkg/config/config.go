@@ -39,9 +39,11 @@ type Config struct {
 
 	SkipTLSVerify bool `yaml:"skipTLSVerify"`
 
+	Collectors *[]string `yaml:"collectors,omitempty"`
+
 	Timeouts Timeouts `yaml:"timeouts"`
 
-	Cache Cache `yaml:"Cache"`
+	Cache Cache `yaml:"cache"`
 
 	RBD RBD `yaml:"rbd"`
 }

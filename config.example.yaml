@@ -8,10 +8,17 @@ metricsPath: "/metrics"
 # -- Skip TLS cert verification globally
 skipTLSVerify: false
 
+# -- List of enabled collectors
+collectors:
+  - rgw_buckets
+  - rgw_user_quota
+  # Requires a ceph.conf with authentication info (see .rbd.cephConfig below)
+  #- rbd_volumes
+
 timeouts:
-  # Context timeout for collecting metrics per collector
+  # -- Context timeout for collecting metrics per collector
   collector: "60s"
-  # HTTP request timeout for collecting metrics for RGW API HTTP client
+  # -- HTTP request timeout for collecting metrics for RGW API HTTP client
   http: "55s"
 
 cache:

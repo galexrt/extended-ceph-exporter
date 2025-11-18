@@ -30,8 +30,8 @@ func StringExpandEnv() mapstructure.DecodeHookFuncKind {
 	return func(
 		f reflect.Kind,
 		t reflect.Kind,
-		data interface{},
-	) (interface{}, error) {
+		data any,
+	) (any, error) {
 		if f != reflect.String || t != reflect.String {
 			return data, nil
 		}

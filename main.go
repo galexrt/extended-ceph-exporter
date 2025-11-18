@@ -88,6 +88,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if cfg.Collectors != nil {
+		opts.CollectorsEnabled = *cfg.Collectors
+	}
+
 	level, err := zapcore.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, fmt.Errorf("unable to parse log level. %w", err))
