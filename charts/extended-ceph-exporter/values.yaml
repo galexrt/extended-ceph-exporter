@@ -204,7 +204,7 @@ postInstallJob:
   image:
     repository: quay.io/ceph/ceph
     pullPolicy: IfNotPresent
-    tag: v20.1.1
+    tag: v20.2.0
   # -- RGW Realms config and options
   rgw:
     # -- The Ceph RGW endpoint as a URL, e.g. "https://your-ceph-rgw-endpoint-here:8443"
