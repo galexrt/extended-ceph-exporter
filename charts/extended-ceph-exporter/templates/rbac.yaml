@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "extended-ceph-exporter.fullname" . }}
+  labels:
+    {{- include "extended-ceph-exporter.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["objectstorage.k8s.io"]
+    resources: ["bucketclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["objectstorage.k8s.io"]
+    resources: ["buckets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["objectstorage.k8s.io"]
+    resources: ["bucketclasses","bucketaccessclasses"]
+    verbs: ["get", "list", "watch"]
