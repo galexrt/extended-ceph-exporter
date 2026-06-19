@@ -3,13 +3,13 @@
   description = "Basic flake for Go development";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-26.05";
   };
 
   outputs = { self, nixpkgs }:
     let
       goMajorVersion = 1;
-      goMinorVersion = 24; # Change this to update the whole stack
+      goMinorVersion = 26; # Change this to update the whole stack
 
       lib = nixpkgs.lib;
 
