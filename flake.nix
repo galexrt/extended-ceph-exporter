@@ -3,7 +3,7 @@
   description = "Basic flake for Go development";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-26.05";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=unstable";
   };
 
   outputs = { self, nixpkgs }:
