@@ -152,8 +152,8 @@ config:
       interval: "4m"
       # -- Per collector refresh interval overrides
       intervals: {}
-        # rbd_images: "60s"
-        # rbd_image_usage: "4m"
+        # rbd_images: "30s"
+        # rbd_image_usage: "2m"
 
     rbd:
       # -- Ceph Config file to read (if left empty will read default Ceph config file)

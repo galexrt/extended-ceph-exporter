@@ -80,6 +80,32 @@ Applying this will create an user with all permissions needed.
 
 * Should you have Grafana running for metrics visulization, check out the available [Grafana dashboards](grafana/).
 
+### Container
+
+Running against a Ceph cluster needs the cluster config and a keyring mounted in,
+and host networking so the exporter can reach the monitors:
+
+```console
+podman run -d --name extended-ceph-exporter --net=host \
+  -v /etc/ceph:/etc/ceph:ro \
+  localhost/extended-ceph-exporter:v2 \
+  --web.listen-address=:9138 \
+  --collector-timeout=3m \
+  --refresh-intervals=rbd_images=30s,rbd_image_usage=2m
+```
+
+No config file needs to be mounted for this: the image ships a `config.yaml` in
+`/config` that enables both RBD collectors, and the flags cover the rest. Mount
+your own over `/config` to replace it.
+
+`/etc/ceph` has to contain a `ceph.conf` and a keyring the exporter can
+authenticate with. Set `rbd.cephConfig` to read them from somewhere else.
+
+Keep `rbd_image_usage`'s interval comfortably above how long one of its cycles
+takes, which is roughly what `rbd du` needs over the same pools. A cycle that
+overruns its interval is abandoned and logged, and because a blocked librados
+call cannot be cancelled, its goroutine is leaked until the exporter restarts.
+
 ### Helm
 
 To install the exporter to Kubernetes using Helm, please check out the [extended-ceph-exporter Helm Chart README.md file](charts/extended-ceph-exporter/README.md).
@@ -149,8 +175,8 @@ only reads the image header and its metadata:
 refresh:
   interval: "4m"
   intervals:
-    rbd_images: "60s"
-    rbd_image_usage: "4m"
+    rbd_images: "30s"
+    rbd_image_usage: "2m"
 ```
 
 `custom_rbd_last_refresh_timestamp_seconds{collector="..."}` reports when each
@@ -175,13 +201,19 @@ An example realm config file can be found here [`realms.example.yaml`](realms.ex
 
 ## Flags
 
+Any flag that is explicitly passed overrides the equivalent config file setting.
+
 ```console
 $ extended-ceph-exporter --help
 Usage of exporter:
-      --collectors-enabled strings           List of enabled collectors (please refer to the readme for a list of all available collectors) (default [rgw_user_quota,rgw_buckets])
-      --config config.yaml                   Config file path (default name config.yaml , current and `/config` directory).
-      --realms-config --multi-realm-config   Path to your realms.yaml config file (old flag name: --multi-realm-config) (default "realms.yaml")
-      --version                              Show version info and exit
+      --collector-timeout timeouts.collector                  Context timeout per collector (overrides timeouts.collector from the config file).
+      --collectors-enabled strings                            List of enabled collectors (please refer to the readme for a list of all available collectors) (default [rbd_images,rbd_image_usage])
+      --config config.yaml                                    Config file path (default name config.yaml , current and `/config` directory).
+      --realms-config realms.yaml                             Config file path (default name realms.yaml , current and `/realms` directory; old flag name: `--multi-realm-config`).
+      --refresh-interval refresh.interval                     Default background refresh interval for all collectors (overrides refresh.interval from the config file).
+      --refresh-intervals rbd_images=30s,rbd_image_usage=2m   Per collector background refresh intervals, e.g. rbd_images=30s,rbd_image_usage=2m (overrides `refresh.intervals` from the config file). (default [])
+      --version                                               Show version info and exit
+      --web.listen-address listenHost                         Address to listen on for the metrics endpoint (overrides listenHost from the config file).
 pflag: help requested
 exit status 2
 ```

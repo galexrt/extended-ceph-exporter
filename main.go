@@ -80,7 +80,7 @@ func init() {
 	flags.StringVar(&opts.ListenAddress, "web.listen-address", "", "Address to listen on for the metrics endpoint (overrides `listenHost` from the config file).")
 	flags.DurationVar(&opts.CollectorTimeout, "collector-timeout", 0, "Context timeout per collector (overrides `timeouts.collector` from the config file).")
 	flags.DurationVar(&opts.RefreshInterval, "refresh-interval", 0, "Default background refresh interval for all collectors (overrides `refresh.interval` from the config file).")
-	flags.StringToStringVar(&opts.RefreshIntervals, "refresh-intervals", nil, "Per collector background refresh intervals, e.g. `rbd_images=60s,rbd_image_usage=4m` (overrides `refresh.intervals` from the config file).")
+	flags.StringToStringVar(&opts.RefreshIntervals, "refresh-intervals", nil, "Per collector background refresh intervals, e.g. `rbd_images=30s,rbd_image_usage=2m` (overrides `refresh.intervals` from the config file).")
 }
 
 func aliasNormalizeFunc(f *flag.FlagSet, name string) flag.NormalizedName {
