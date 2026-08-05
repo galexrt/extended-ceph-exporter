@@ -10,28 +10,44 @@ skipTLSVerify: false
 
 # -- List of enabled collectors
 collectors:
-  - rgw_buckets
-  - rgw_user_quota
-  # Requires a ceph.conf with authentication info (see .rbd.cephConfig below)
+  # Require a ceph.conf with authentication info (see .rbd.cephConfig below)
+  - rbd_images
+  - rbd_image_usage
+  # Require an RGW realm to be configured in realms.yaml
+  #- rgw_buckets
+  #- rgw_user_quota
+  # Superseded by rbd_images, which reports the same size with ownership labels
   #- rbd_volumes
 
 timeouts:
   # -- Context timeout for collecting metrics per collector
-  collector: "60s"
+  collector: "3m"
   # -- HTTP request timeout for collecting metrics for RGW API HTTP client
   http: "55s"
 
-cache:
-  # -- Enable metrics caching to reduce load
-  enabled: false
-  # -- Cache duration in seconds
-  duration: "20s"
+# -- Every enabled collector is refreshed by its own background goroutine, and a
+#    scrape only ever replays the last completed refresh. Scrapes are therefore
+#    always fast, no matter how expensive a collector is.
+refresh:
+  # -- Default refresh interval, applied to any collector without an override
+  interval: "4m"
+  # -- Per collector refresh interval overrides
+  intervals: {}
+    # rbd_images: "60s"      # cheap: image header plus image metadata
+    # rbd_image_usage: "4m"  # expensive: has to visit every backing object
 
 rbd:
   # -- Ceph Config file to read (if left empty will read default Ceph config file)
   cephConfig: ""
-  # -- List of namespaces and pools to collect RBD related metrics from
-  pools: [] # empty list = all pools and namespaces
+  # -- Bound on how long a single librados operation may wait for the cluster.
+  #    librados itself defaults to waiting forever and a blocked call cannot be
+  #    cancelled from Go, so leaving this unset risks a collector wedging until
+  #    the exporter is restarted. A value already set in ceph.conf always wins.
+  #    Set to 0 to keep the librados default.
+  opTimeout: "30s"
+  # -- List of namespaces and pools to collect RBD related metrics from.
+  #    Pools that do not hold RBD images are skipped automatically.
+  pools: [] # empty list = all RBD pools and namespaces
     # - name: my_pool
     #   namespaces: [] # empty list = all namespaces
     #     # - my_namespace # only namespaces listed in the list

@@ -38,6 +38,10 @@ func NewRGWUserQuota() (Collector, error) {
 }
 
 func (c *RGWUserQuota) Update(ctx context.Context, client *Client, ch chan<- prometheus.Metric) error {
+	if client.RGWAdminAPI == nil {
+		return errNoRGWAPI(client)
+	}
+
 	// Get the "admin" user
 	users, err := client.RGWAdminAPI.GetUsers(ctx)
 	if err != nil {

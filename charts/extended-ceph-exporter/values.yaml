@@ -130,28 +130,40 @@ config:
 
     # -- List of enabled collectors
     collectors:
-      - rgw_buckets
-      - rgw_user_quota
-      # Requires a ceph.conf with authentication info
+      # Require a ceph.conf with authentication info
+      - rbd_images
+      - rbd_image_usage
+      # Require an RGW realm to be configured below
+      #- rgw_buckets
+      #- rgw_user_quota
+      # Superseded by rbd_images, which also carries ownership labels
       #- rbd_volumes
 
     timeouts:
       # -- Context timeout for collecting metrics per collector
-      collector: "60s"
+      collector: "3m"
       # -- HTTP request timeout for collecting metrics for RGW API HTTP client
       http: "55s"
 
-    cache:
-      # -- Enable metrics caching to reduce load
-      enabled: false
-      # -- Cache duration in seconds
-      duration: "20s"
+    # -- Each collector is refreshed by its own background goroutine, so a scrape
+    #    only replays the last completed refresh and never blocks on collection
+    refresh:
+      # -- Default refresh interval, applied to collectors without an override
+      interval: "4m"
+      # -- Per collector refresh interval overrides
+      intervals: {}
+        # rbd_images: "60s"
+        # rbd_image_usage: "4m"
 
     rbd:
       # -- Ceph Config file to read (if left empty will read default Ceph config file)
       cephConfig: ""
+      # -- Bound on how long a single librados operation may wait for the cluster,
+      #    applied only when librados has no timeout configured. Set to 0 to keep
+      #    the librados default, which is to wait forever
+      opTimeout: "30s"
       # -- List of namespaces and pools to collect RBD related metrics from
-      pools: [] # empty list = all pools and namespaces
+      pools: [] # empty list = all RBD pools and namespaces
         # - name: my_pool
         #   namespaces: [] # empty list = all namespaces
         #     # - my_namespace # only namespaces listed in the list

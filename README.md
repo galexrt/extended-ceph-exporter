@@ -91,16 +91,81 @@ below list all existing collectors and the required Ceph components.
 
 ### Enabled by default
 
-| Name             |                            Description                            | Ceph Component |
-| :--------------- | :---------------------------------------------------------------: | -------------- |
-| `rgw_buckets`    | Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster. | RGW            |
-| `rgw_user_quota` |       Exposes RGW User Quota metrics from the Ceph cluster.       | RGW            |
+| Name              |                                        Description                                        | Ceph Component |
+| :---------------- | :---------------------------------------------------------------------------------------: | -------------- |
+| `rbd_images`      | Exposes RBD image provisioned size, creation time, tenant ownership and QoS IOPS limits.  | RBD            |
+| `rbd_image_usage` |            Exposes how much space each RBD image actually occupies. Expensive.            | RBD            |
 
 ### Disabled by default
 
-| Name          |                                  Description                                  | Ceph Component |
-| :------------ | :---------------------------------------------------------------------------: | -------------- |
-| `rbd_volumes` | Exposes RBD volumes size (volume pool, id, and name are available as labels). | RBD            |
+| Name             |                                    Description                                     | Ceph Component |
+| :--------------- | :--------------------------------------------------------------------------------: | -------------- |
+| `rgw_buckets`    |          Exposes RGW Bucket Usage and Quota metrics from the Ceph cluster.          | RGW            |
+| `rgw_user_quota` |                Exposes RGW User Quota metrics from the Ceph cluster.                | RGW            |
+| `rbd_volumes`    | Exposes RBD volumes size. Superseded by `rbd_images`, which also carries ownership. | RBD            |
+
+## RBD: Image Ownership
+
+`rbd_images` reads tenant ownership from RBD image metadata, exposing it on
+`custom_rbd_image_owner` (whose value is always `1`) as labels:
+
+| Image metadata key        | Label                 |
+| :------------------------ | :-------------------- |
+| `e2e.resource_type`       | `resource_type`       |
+| `e2e.vm_id`               | `vm_id`               |
+| `e2e.project`             | `project`             |
+| `e2e.customer_id`         | `customer_id`         |
+| `e2e.customer_email`      | `customer_email`      |
+| `e2e.billed_customer_crn` | `billed_customer_crn` |
+
+Note that `customer_id` is the owning account while `billed_customer_crn` is the
+billed entity, and the two are not necessarily the same. Group by
+`billed_customer_crn` for billing and by `customer_id` for attribution.
+
+An image carrying none of these keys produces no `owner` series at all, so
+untagged images can be counted by comparing against `custom_rbd_image_provisioned_bytes`.
+An image carrying only some of them is still reported, with the missing labels
+left empty, so that it stays visible instead of dropping out of tenant queries.
+
+QoS limits are read from the `conf_rbd_qos_read_iops_limit` and
+`conf_rbd_qos_write_iops_limit` metadata keys. These are Ceph per image config
+overrides rather than annotations, so they are live enforcement values. A metric
+is only emitted for images that actually carry the override, because Ceph reads
+an explicitly configured `0` as *unlimited*, which is a different state from no
+limit being configured at all.
+
+## Background Refresh
+
+Every enabled collector is refreshed by its own background goroutine on its own
+interval, and a scrape only ever replays the last completed refresh. Scrapes are
+therefore always fast, however expensive the underlying collection is.
+
+This matters because `rbd_image_usage` has to visit every backing object unless
+the `fast-diff` image feature is enabled, which can take far longer than a
+Prometheus scrape timeout. Give it a longer interval than `rbd_images`, which
+only reads the image header and its metadata:
+
+```yaml
+refresh:
+  interval: "4m"
+  intervals:
+    rbd_images: "60s"
+    rbd_image_usage: "4m"
+```
+
+`custom_rbd_last_refresh_timestamp_seconds{collector="..."}` reports when each
+collector last completed, and is `0` until its first cycle finishes. Alert on it
+to catch a collector that has stopped making progress:
+
+```promql
+time() - custom_rbd_last_refresh_timestamp_seconds > 600
+```
+
+Be aware that collectors refreshed at different intervals are observed at
+different points in time. Joining across them, for example
+`custom_rbd_image_used_bytes` against `custom_rbd_image_owner`, can therefore
+briefly mismatch while an image is being created or removed. Use the same
+interval for both if such a join has to be exact.
 
 ## RGW: Multiple Realms
 

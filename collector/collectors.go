@@ -18,6 +18,7 @@ package collector
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ceph/go-ceph/rados"
 	rgwadmin "github.com/ceph/go-ceph/rgw/admin"
@@ -25,7 +26,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const MetricsNamespace = "ceph"
+// MetricsNamespace is the prefix shared by every metric this exporter emits.
+// It is "custom" rather than "ceph" to keep the metric names compatible with
+// the in-house RBD exporter this replaces (e.g. custom_rbd_image_owner).
+const MetricsNamespace = "custom"
 
 type Client struct {
 	Name string
@@ -38,6 +42,14 @@ type Client struct {
 
 type Collector interface {
 	Update(context.Context, *Client, chan<- prometheus.Metric) error
+}
+
+// errNoRGWAPI reports that an RGW collector ran against a client without an RGW
+// API connection, which is the case for the synthetic client used when no realm
+// is configured. Returning an error keeps it a visible collector failure rather
+// than a nil dereference.
+func errNoRGWAPI(client *Client) error {
+	return fmt.Errorf("client %q has no RGW API connection, configure a realm in realms.yaml or disable the RGW collectors", client.Name)
 }
 
 type NewCollectorFunc func() (Collector, error)

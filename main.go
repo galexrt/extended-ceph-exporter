@@ -23,7 +23,9 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ceph/go-ceph/rados"
 	"github.com/ceph/go-ceph/rgw/admin"
@@ -37,9 +39,18 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// defaultClientName names the client used when no RGW realm is configured. RBD
+// collectors are cluster scoped and need no realm, so an RBD only deployment
+// still gets exactly one client to collect against.
+const defaultClientName = "default"
+
+// radosOpTimeoutOptions are the librados options bounding how long a single
+// operation may wait for the cluster.
+var radosOpTimeoutOptions = []string{"rados_osd_op_timeout", "rados_mon_op_timeout"}
+
 var (
 	flags                    = flag.NewFlagSet("exporter", flag.ExitOnError)
-	defaultEnabledCollectors = []string{"rgw_user_quota", "rgw_buckets"}
+	defaultEnabledCollectors = []string{"rbd_images", "rbd_image_usage"}
 )
 
 type CmdLineOpts struct {
@@ -49,6 +60,11 @@ type CmdLineOpts struct {
 	RealmsFile string
 
 	CollectorsEnabled []string
+
+	ListenAddress    string
+	CollectorTimeout time.Duration
+	RefreshInterval  time.Duration
+	RefreshIntervals map[string]string
 }
 
 var opts CmdLineOpts
@@ -60,6 +76,11 @@ func init() {
 	flags.StringVar(&opts.RealmsFile, "realms-config", "", "Config file path (default name `realms.yaml` , current and `/realms` directory; old flag name: `--multi-realm-config`).")
 
 	flags.StringSliceVar(&opts.CollectorsEnabled, "collectors-enabled", defaultEnabledCollectors, "List of enabled collectors (please refer to the readme for a list of all available collectors)")
+
+	flags.StringVar(&opts.ListenAddress, "web.listen-address", "", "Address to listen on for the metrics endpoint (overrides `listenHost` from the config file).")
+	flags.DurationVar(&opts.CollectorTimeout, "collector-timeout", 0, "Context timeout per collector (overrides `timeouts.collector` from the config file).")
+	flags.DurationVar(&opts.RefreshInterval, "refresh-interval", 0, "Default background refresh interval for all collectors (overrides `refresh.interval` from the config file).")
+	flags.StringToStringVar(&opts.RefreshIntervals, "refresh-intervals", nil, "Per collector background refresh intervals, e.g. `rbd_images=60s,rbd_image_usage=4m` (overrides `refresh.intervals` from the config file).")
 }
 
 func aliasNormalizeFunc(f *flag.FlagSet, name string) flag.NormalizedName {
@@ -88,8 +109,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.Collectors != nil {
-		opts.CollectorsEnabled = *cfg.Collectors
+	applyFlagOverrides(cfg)
+
+	refreshIntervals, err := resolveRefreshIntervals(cfg.Refresh.Intervals, opts.RefreshIntervals)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	level, err := zapcore.ParseLevel(cfg.LogLevel)
@@ -111,24 +136,32 @@ func main() {
 	if slices.ContainsFunc(opts.CollectorsEnabled, func(c string) bool {
 		return strings.HasPrefix(c, "rbd_")
 	}) {
-		radosConn, err := rados.NewConn()
+		conn, err := rados.NewConn()
 		if err != nil {
 			logger.Fatal("failed to create new rados connection", zap.Error(err))
 		}
 
 		if cfg.RBD.CephConfig != "" {
-			if err := radosConn.ReadConfigFile(cfg.RBD.CephConfig); err != nil {
+			if err := conn.ReadConfigFile(cfg.RBD.CephConfig); err != nil {
 				logger.Fatal("failed to read custom ceph/rados config file", zap.String("path", cfg.RBD.CephConfig), zap.Error(err))
 			}
 		} else {
-			if err := radosConn.ReadDefaultConfigFile(); err != nil {
+			if err := conn.ReadDefaultConfigFile(); err != nil {
 				logger.Fatal("failed to read default ceph/rados config file", zap.Error(err))
 			}
 		}
 
-		if err := radosConn.Connect(); err != nil {
+		if err := setRadosOpTimeouts(conn, cfg.RBD.OpTimeout, logger); err != nil {
+			logger.Fatal("failed to set librados operation timeouts", zap.Error(err))
+		}
+
+		if err := conn.Connect(); err != nil {
 			logger.Fatal("failed to create rados connection", zap.Error(err))
 		}
+
+		// Only assigned once the connection is usable, so that collectors can
+		// treat a non nil connection as a connected one.
+		radosConn = conn
 	}
 
 	clients := map[string]*collector.Client{}
@@ -146,6 +179,21 @@ func main() {
 		}
 	}
 
+	// Without this an RBD only deployment has no clients at all, and every
+	// collector would silently be skipped because collection iterates clients.
+	if len(clients) == 0 {
+		clients[defaultClientName] = &collector.Client{
+			Name:   defaultClientName,
+			Config: cfg,
+			Rados:  radosConn,
+		}
+	}
+
+	if radosConn != nil && len(clients) > 1 {
+		logger.Warn("RBD metrics are cluster scoped, but multiple RGW realms are configured, so every RBD series will be duplicated per realm",
+			zap.Int("clients", len(clients)))
+	}
+
 	collectors, err := loadCollectors(opts.CollectorsEnabled)
 	if err != nil {
 		logger.Fatal("couldn't load collectors", zap.Error(err))
@@ -157,12 +205,22 @@ func main() {
 	}
 	logger.Info("enabled collectors", zap.Strings("collectors", cs))
 
+	for name := range refreshIntervals {
+		if _, ok := collectors[name]; !ok {
+			logger.Warn("refresh interval configured for a collector that is not enabled", zap.String("collector", name))
+		}
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err = prometheus.Register(NewExtendedCephMetricsCollector(ctx, logger, clients, collectors,
-		cfg.Timeouts.Collector, cfg.Cache.Enabled, cfg.Cache.Duration)); err != nil {
+
+	metricsCollector := NewExtendedCephMetricsCollector(ctx, logger, clients, collectors,
+		cfg.Timeouts.Collector, cfg.Refresh.Interval, refreshIntervals)
+	if err = prometheus.Register(metricsCollector); err != nil {
 		logger.Fatal("couldn't register collectors", zap.Error(err))
 	}
+
+	metricsCollector.StartRefreshers(ctx)
 
 	logger.Info(fmt.Sprintf("listening on %s", cfg.ListenHost))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +243,88 @@ func main() {
 	http.HandleFunc(cfg.MetricsPath, handler.ServeHTTP)
 
 	http.ListenAndServe(cfg.ListenHost, nil)
+}
+
+// applyFlagOverrides folds the command line into the loaded config.
+//
+// A flag only wins when it was explicitly passed, so the config file stays
+// authoritative for everything left at its default.
+func applyFlagOverrides(cfg *config.Config) {
+	if cfg.Collectors != nil && !flags.Changed("collectors-enabled") {
+		opts.CollectorsEnabled = *cfg.Collectors
+	}
+
+	if flags.Changed("web.listen-address") {
+		cfg.ListenHost = opts.ListenAddress
+	}
+
+	if flags.Changed("collector-timeout") {
+		cfg.Timeouts.Collector = opts.CollectorTimeout
+	}
+
+	if flags.Changed("refresh-interval") {
+		cfg.Refresh.Interval = opts.RefreshInterval
+	}
+}
+
+// resolveRefreshIntervals merges the per collector refresh intervals from the
+// config file with any given on the command line, where the command line wins.
+func resolveRefreshIntervals(fromConfig map[string]time.Duration, fromFlags map[string]string) (map[string]time.Duration, error) {
+	intervals := make(map[string]time.Duration, len(fromConfig)+len(fromFlags))
+	for name, interval := range fromConfig {
+		intervals[name] = interval
+	}
+
+	for name, raw := range fromFlags {
+		interval, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse refresh interval %q for the %s collector. %w", raw, name, err)
+		}
+
+		intervals[name] = interval
+	}
+
+	return intervals, nil
+}
+
+// setRadosOpTimeouts fills in the librados operation timeouts while they are
+// still unlimited.
+//
+// librados defaults both options to 0, meaning "wait forever". go-ceph calls are
+// blocking cgo calls that Go cannot interrupt, so an operation the cluster never
+// answers would park a collector goroutine permanently and the exporter would
+// keep serving stale metrics without ever reporting a failure. Values already
+// set, whether in ceph.conf or elsewhere, are left untouched.
+func setRadosOpTimeouts(conn *rados.Conn, timeout time.Duration, logger *zap.Logger) error {
+	if timeout <= 0 {
+		logger.Warn("librados operation timeouts are disabled, a request the cluster never answers will block a collector until the exporter is restarted")
+
+		return nil
+	}
+
+	seconds := strconv.FormatFloat(timeout.Seconds(), 'f', -1, 64)
+
+	for _, option := range radosOpTimeoutOptions {
+		value, err := conn.GetConfigOption(option)
+		if err != nil {
+			return fmt.Errorf("failed to read %s. %w", option, err)
+		}
+
+		if current, perr := strconv.ParseFloat(value, 64); perr == nil && current > 0 {
+			logger.Debug("librados operation timeout already configured, leaving it alone",
+				zap.String("option", option), zap.String("value", value))
+
+			continue
+		}
+
+		if err := conn.SetConfigOption(option, seconds); err != nil {
+			return fmt.Errorf("failed to set %s to %s. %w", option, seconds, err)
+		}
+
+		logger.Info("set librados operation timeout", zap.String("option", option), zap.String("value", seconds))
+	}
+
+	return nil
 }
 
 func CreateRGWAPIConnection(cfg *config.Config, realm *config.Realm) (*admin.API, error) {

@@ -43,24 +43,36 @@ type Config struct {
 
 	Timeouts Timeouts `yaml:"timeouts"`
 
-	Cache Cache `yaml:"cache"`
+	Refresh Refresh `yaml:"refresh"`
 
 	RBD RBD `yaml:"rbd"`
 }
 
 type Timeouts struct {
-	Collector time.Duration `yaml:"collector" default:"60s"`
+	Collector time.Duration `yaml:"collector" default:"3m"`
 	HTTP      time.Duration `yaml:"http" default:"55s"`
 }
 
-type Cache struct {
-	Enabled  bool          `yaml:"enabled"`
-	Duration time.Duration `yaml:"duration" default:"20s"`
+// Refresh configures the background refreshers. Every enabled collector is
+// refreshed by its own goroutine, so an expensive collector never delays a
+// scrape and a cheap one can be kept much fresher than an expensive one.
+type Refresh struct {
+	// Interval applies to every collector without an entry in Intervals.
+	Interval time.Duration `yaml:"interval" default:"4m"`
+	// Intervals overrides Interval for individual collectors, keyed by
+	// collector name.
+	Intervals map[string]time.Duration `yaml:"intervals"`
 }
 
 type RBD struct {
 	CephConfig string     `yaml:"cephConfig"`
 	Pools      []*RBDPool `yaml:"pools"`
+
+	// OpTimeout bounds how long a single librados operation may wait for the
+	// cluster. It is only applied when librados has no timeout configured yet,
+	// so a value from ceph.conf always wins. Set it to 0 to leave librados at
+	// its own default, which is to wait forever.
+	OpTimeout time.Duration `yaml:"opTimeout" default:"30s"`
 }
 
 type RBDPool struct {

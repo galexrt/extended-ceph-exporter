@@ -38,6 +38,10 @@ func NewRGWBuckets() (Collector, error) {
 }
 
 func (c *RGWBuckets) Update(ctx context.Context, client *Client, ch chan<- prometheus.Metric) error {
+	if client.RGWAdminAPI == nil {
+		return errNoRGWAPI(client)
+	}
+
 	buckets, err := client.RGWAdminAPI.ListBuckets(ctx)
 	if err != nil {
 		return err

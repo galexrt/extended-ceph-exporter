@@ -17,7 +17,9 @@ limitations under the License.
 package config
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"reflect"
 
@@ -99,9 +101,15 @@ func loadRealms(path string) (*RGW, error) {
 		v.SetConfigFile(path)
 	}
 
-	// Find and read the config file
+	// RGW realms are optional. An RBD only deployment ships no realms file, and
+	// requiring a stub just to satisfy a subsystem it never uses would be a
+	// pointless startup failure. The RGW collectors report a clear error of
+	// their own if they are enabled without a realm.
 	if err := v.ReadInConfig(); err != nil {
-		return nil, err
+		var notFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &notFound) && !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
 	}
 
 	r := &RGW{}

@@ -122,7 +122,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "builder",
-          "expr": "sum(ceph_rgw_bucket_num_objects{bucket=~\"$bucket\"})",
+          "expr": "sum(custom_rgw_bucket_num_objects{bucket=~\"$bucket\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -184,7 +184,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "builder",
-          "expr": "sum(ceph_rgw_bucket_size_kb{bucket=~\"$bucket\"})",
+          "expr": "sum(custom_rgw_bucket_size_kb{bucket=~\"$bucket\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -296,7 +296,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_bucket_num_objects{bucket=~\"$bucket\"}",
+          "expr": "custom_rgw_bucket_num_objects{bucket=~\"$bucket\"}",
           "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
@@ -307,7 +307,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_user_quota_max_objects * on (instance, uid) group_right ceph_rgw_bucket_num_objects{bucket=~\"$bucket\"} > 0",
+          "expr": "custom_rgw_user_quota_max_objects * on (instance, uid) group_right custom_rgw_bucket_num_objects{bucket=~\"$bucket\"} > 0",
           "hide": false,
           "legendFormat": "Max - {{bucket}}",
           "range": true,
@@ -402,7 +402,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_bucket_size_kb{bucket=~\"$bucket\"}",
+          "expr": "custom_rgw_bucket_size_kb{bucket=~\"$bucket\"}",
           "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
@@ -413,7 +413,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_user_quota_max_size_kb + on (instance, uid) group_right ceph_rgw_bucket_size_kb{bucket=~\"$bucket\"} > 0",
+          "expr": "custom_rgw_user_quota_max_size_kb + on (instance, uid) group_right custom_rgw_bucket_size_kb{bucket=~\"$bucket\"} > 0",
           "hide": false,
           "legendFormat": "Max - {{bucket}}",
           "range": true,
@@ -507,7 +507,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_bucket_size_kb_utilized{bucket=~\"$bucket\"}",
+          "expr": "custom_rgw_bucket_size_kb_utilized{bucket=~\"$bucket\"}",
           "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
@@ -518,7 +518,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_user_quota_max_size_kb + on (instance, uid) group_right ceph_rgw_bucket_size_kb_utilized{bucket=~\"$bucket\"} > 0",
+          "expr": "custom_rgw_user_quota_max_size_kb + on (instance, uid) group_right custom_rgw_bucket_size_kb_utilized{bucket=~\"$bucket\"} > 0",
           "hide": false,
           "legendFormat": "Max - {{bucket}}",
           "range": true,
@@ -612,7 +612,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_bucket_size_kb_actual{bucket=~\"$bucket\"}",
+          "expr": "custom_rgw_bucket_size_kb_actual{bucket=~\"$bucket\"}",
           "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
@@ -623,7 +623,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_user_quota_max_size_kb + on (instance, uid) group_right ceph_rgw_bucket_size_kb_actual{bucket=~\"$bucket\"} > 0",
+          "expr": "custom_rgw_user_quota_max_size_kb + on (instance, uid) group_right custom_rgw_bucket_size_kb_actual{bucket=~\"$bucket\"} > 0",
           "hide": false,
           "legendFormat": "Max - {{bucket}}",
           "range": true,
@@ -729,7 +729,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_bucket_quota_max_objects{bucket=~\"$bucket\"}",
+          "expr": "custom_rgw_bucket_quota_max_objects{bucket=~\"$bucket\"}",
           "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
@@ -822,7 +822,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "ceph_rgw_bucket_quota_max_size_kb{bucket=~\"$bucket\"}",
+          "expr": "custom_rgw_bucket_quota_max_size_kb{bucket=~\"$bucket\"}",
           "legendFormat": "{{bucket}}",
           "range": true,
           "refId": "A"
@@ -865,7 +865,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(ceph_rgw_bucket_num_objects, bucket)",
+        "definition": "label_values(custom_rgw_bucket_num_objects, bucket)",
         "hide": 0,
         "includeAll": true,
         "label": "Bucket",
@@ -873,7 +873,7 @@
         "name": "bucket",
         "options": [],
         "query": {
-          "query": "label_values(ceph_rgw_bucket_num_objects, bucket)",
+          "query": "label_values(custom_rgw_bucket_num_objects, bucket)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
