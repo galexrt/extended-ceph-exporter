@@ -1,8 +1,6 @@
 module github.com/galexrt/extended-ceph-exporter
 
-go 1.26.3
-
-toolchain go1.26.5
+go 1.27.0
 
 require (
 	github.com/ceph/go-ceph v0.41.0
