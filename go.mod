@@ -4,7 +4,7 @@ go 1.27.0
 
 require (
 	github.com/ceph/go-ceph v0.41.0
-	github.com/creasty/defaults v1.8.0
+	github.com/creasty/defaults v1.11.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.71.0
