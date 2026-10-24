@@ -125,10 +125,21 @@ exit status 2
 
 ### Requirements
 
-* Golang 1.23.x (or higher should work)
-* Ceph development files/libraries (`librados`, `librdb`)
-    * If you are using `nix`, the `flake.nix` should be satisfy these lib dependencies.
+* Golang 1.27.x (or higher should work)
+* Ceph development files/libraries (`librados`, `librbd`)
 * `helm`
+
+The repository includes a development container with the Go toolchain and Ceph development libraries.
+In VS Code, install the Dev Containers extension and choose **Reopen in Container** when prompted.
+From the command line, the same container can be started with:
+
+```console
+$ devcontainer up --workspace-folder .
+$ devcontainer exec --workspace-folder . make test
+```
+
+The Nix flake is intentionally limited to development tools. Use the
+development container for builds and tests that require Ceph libraries.
 
 ### Making Changes to the Helm Chart
 
@@ -140,4 +151,4 @@ Additionally `make helm-doc` must be run afterwards and the changes to the Helm 
 A VSCode debug config is available to run and debug the project.
 
 To make the exporter talk with a Ceph RGW S3 endpoint, create a copy of the `config.example.yaml` and `realms.example.yaml` files, and rename the files to remove the `.example` from the names.
-Be sure ot add your Ceph RGW S3 endpoint and credentials in it.
+Be sure to add your Ceph RGW S3 endpoint and credentials in it.

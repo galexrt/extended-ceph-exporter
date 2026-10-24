@@ -37,13 +37,6 @@
             # goimports, godoc, etc.
             gotools
             gofumpt
-
-            # Ceph libs
-            ceph-dev
-          ];
-
-          inputsFrom = with pkgs; [
-            ceph-dev
           ];
         };
       });

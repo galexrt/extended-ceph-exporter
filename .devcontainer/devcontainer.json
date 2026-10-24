@@ -1,0 +1,17 @@
+{
+  "name": "extended-ceph-exporter",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/extended-ceph-exporter",
+  "forwardPorts": [9138],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go"
+      ]
+    }
+  },
+  "postCreateCommand": "go version && pkg-config --modversion rados"
+}
