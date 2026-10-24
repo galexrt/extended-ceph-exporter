@@ -13,5 +13,5 @@
       ]
     }
   },
-  "postCreateCommand": "go version && pkg-config --modversion rados"
+  "postCreateCommand": "go version && librados-config --version && test -f /usr/include/rados/librados.h && test -f /usr/include/rbd/librbd.h && test -f /usr/include/cephfs/libcephfs.h"
 }
